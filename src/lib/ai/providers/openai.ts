@@ -1,7 +1,18 @@
 import { makeProvider } from "./factory";
 import { GENERATION_TEMPERATURE, buildSystemPrompt, buildUserPrompt } from "../prompts";
 
-const model = () => process.env.OPENAI_MODEL || "gpt-4o-mini";
+export const DEFAULT_OPENAI_MODEL = "gpt-6-luna";
+const model = () => process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
+
+/**
+ * Los modelos de razonamiento (gpt-5 en adelante, serie o) rechazan una temperatura distinta de 1 y descuentan
+ * los tokens de razonamiento del tope de salida. Solo los modelos clásicos (gpt-4*, gpt-3.5*) reciben temperatura 0.2.
+ */
+export const acceptsTemperature = (m: string) => /^(gpt-4|gpt-3\.5|chatgpt-4o)/.test(m);
+export const openAiTuning = (m: string) =>
+  acceptsTemperature(m)
+    ? { temperature: GENERATION_TEMPERATURE, max_completion_tokens: 8000 }
+    : { max_completion_tokens: 16000 }; // tope: una salida descontrolada no puede dejar al alumno esperando minutos
 
 export const createOpenAiProvider = (fetchImpl?: typeof fetch) =>
   makeProvider(
@@ -14,9 +25,8 @@ export const createOpenAiProvider = (fetchImpl?: typeof fetch) =>
         headers: (k) => ({ Authorization: `Bearer ${k}` }),
         body: (i) => ({
           model: model(),
-          temperature: GENERATION_TEMPERATURE,
+          ...openAiTuning(model()),
           response_format: { type: "json_object" },
-          max_completion_tokens: 8000, // tope: una salida descontrolada no puede dejar al alumno esperando minutos
           messages: [
             { role: "system", content: buildSystemPrompt(i) },
             {

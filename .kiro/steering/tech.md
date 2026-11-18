@@ -4,7 +4,7 @@
 - Alias `@/*` apunta a `src/`.
 - Validar toda entrada de API con Zod. Consultas solo vía Prisma.
 - API keys: cifrar con `src/lib/crypto.ts` (AES-256-GCM). Nunca devolver la key al cliente; solo `apiKeyLast4`. Nunca registrar keys en logs.
-- IA: todo proveedor implementa `AiProvider` (`src/lib/ai/types.ts`). Temperatura 0.2, salida JSON estricta, validar con `validateGeneratedContent`.
+- IA: todo proveedor implementa `AiProvider` (`src/lib/ai/types.ts`). Temperatura 0.2 donde el modelo la acepte (OpenAI por defecto gpt-6-luna solo acepta 1: se omite), salida JSON estricta, validar con `validateGeneratedContent`.
 - Las respuestas del alumno con la solución correcta no se envían al cliente en el Desafío hasta entregar la prueba.
 - Lógica de dominio pura en `src/lib` con tests Vitest junto al archivo (`*.test.ts`).
 - Comandos: `npm run dev`, `npm test`, `npx tsc --noEmit`, `npm run db:push`.

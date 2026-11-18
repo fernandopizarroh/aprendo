@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { getProvider } from "./index";
+import { openAiTuning } from "./providers/openai";
 
 const json = (status: number, body: unknown) =>
   vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
@@ -60,14 +61,22 @@ describe("generateContent por etapa", () => {
       expect(body).toContain("EXACTAMENTE 12"); // 10 pedidas + margen
       expect(body).toContain("llegaron 5");
       expect(body).toContain("AAAA");
-      expect(body).toContain("0.2");
+      if (id !== "openai") expect(body).toContain("0.2"); // OpenAI: la temperatura depende del modelo (ver openAiTuning)
     });
   }
 
   it("limita el largo de la respuesta: una salida descontrolada no deja al alumno esperando minutos", async () => {
     const f = vi.fn().mockResolvedValue(new Response(JSON.stringify(responses.openai), { status: 200 }));
     await getProvider("openai", f as unknown as typeof fetch).generateContent(input);
-    expect(String((f.mock.calls[0][1] as RequestInit).body)).toContain("max_completion_tokens");
+    expect(openAiTuning("gpt-4o-mini")).toEqual({ temperature: 0.2, max_completion_tokens: 8000 });
+    expect(openAiTuning("gpt-6-luna")).toEqual({ max_completion_tokens: 16000 });
+    expect(openAiTuning("o3-mini").temperature).toBeUndefined();
+    const body = JSON.parse(String((f.mock.calls[0][1] as RequestInit).body));
+    expect(body.max_completion_tokens).toBeGreaterThan(0);
+    if (!process.env.OPENAI_MODEL) {
+      expect(body.model).toBe("gpt-6-luna");
+      expect(body.temperature).toBeUndefined(); // gpt-6-luna solo acepta la temperatura por defecto
+    }
     const g = vi.fn().mockResolvedValue(new Response(JSON.stringify(responses.gemini), { status: 200 }));
     await getProvider("gemini", g as unknown as typeof fetch).generateContent(input);
     expect(String((g.mock.calls[0][1] as RequestInit).body)).toContain("maxOutputTokens");
