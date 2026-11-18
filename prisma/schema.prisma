@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// PRD 6.1. Enums como String por compatibilidad con SQLite; se validan con Zod.
+
+model Parent {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  aiProvider       String? // openai | gemini | anthropic
+  encryptedApiKey  String? // AES-256-GCM (iv:tag:ciphertext, base64)
+  apiKeyLast4      String?
+  createdAt        DateTime  @default(now())
+  students         Student[]
+}
+
+model Student {
+  id           String    @id @default(cuid())
+  parentId     String
+  parent       Parent    @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  username     String    @unique
+  passwordHash String
+  displayName  String
+  gradeLevel   String
+  subjects     Subject[]
+  attempts     StudentAttempt[]
+}
+
+model Subject {
+  id        String          @id @default(cuid())
+  studentId String
+  student   Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  name      String
+  colorTag  String          @default("#4F46E5")
+  icon      String          @default("book")
+  routes    LearningRoute[]
+}
+
+model LearningRoute {
+  id                         String          @id @default(cuid())
+  subjectId                  String
+  subject                    Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title                      String
+  syllabusText               String
+  sourceImagesUrls           Json            @default("[]")
+  configDiagQuestionsCount   Int             @default(10)
+  configChallengeQuestionsCount Int          @default(15)
+  configUnlockThreshold      Int             @default(90) // % del Diagnóstico para abrir el Desafío
+  configChallengeThreshold   Int             @default(90) // % del Desafío para aprobar
+  status                     String          @default("generating") // generating | ready | error
+  errorMessage               String?
+  generationStep             String? // review | diagnostic | challenge (etapa en curso)
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @default(now()) @updatedAt
+  content                    RouteContent?
+  attempts                   StudentAttempt[]
+}
+
+model RouteContent {
+  id                 String        @id @default(cuid())
+  routeId            String        @unique
+  route              LearningRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  reviewModulesJson  Json
+  diagnosticPoolJson Json
+  challengePoolJson  Json
+  // Se incrementa cuando se reemplaza el banco de la etapa (regeneración). Los intentos guardan la versión con que se armaron.
+  diagnosticVersion  Int           @default(1)
+  challengeVersion   Int           @default(1)
+}
+
+model StudentAttempt {
+  id                String        @id @default(cuid())
+  studentId         String
+  student           Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  routeId           String
+  route             LearningRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stage             String // review | diagnostic | challenge
+  scorePercentage   Float?
+  completed         Boolean       @default(false)
+  answersDetailJson Json?
+  createdAt         DateTime      @default(now())
+  completedAt       DateTime?
+
+  @@index([studentId, routeId, stage])
+}

@@ -1,0 +1,25 @@
+﻿# dependencias y compilación
+node_modules
+.next
+out
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# secretos y datos locales: NUNCA se suben
+.env
+.env.local
+.env.*.local
+*.db
+*.db-journal
+uploads
+
+# configuración local de Kiro (puede incluir credenciales de MCP)
+.kiro/settings/
+
+# sistema y editores
+*.log
+.DS_Store
+Thumbs.db
+.idea
+.vscode
