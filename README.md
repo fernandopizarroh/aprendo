@@ -64,6 +64,13 @@ Stack: Next.js 14 (App Router), TypeScript estricto, Prisma + SQLite, Zod, Vites
   - Textos de la interfaz en español.
 - **Casos UAT** (`docs/UAT-Aprendo.md`): al cambiar un comportamiento, actualizar o agregar el caso correspondiente.
 
+## Versiones
+
+Cada versión tiene una etiqueta de Git (`vX.Y.Z`, [SemVer](https://semver.org/lang/es/)) y un Release en GitHub; el detalle está en [`CHANGELOG.md`](CHANGELOG.md).
+
+- **`v1.0.0-rc.1`**: versión congelada para cerrar el UAT. Durante el UAT solo se aceptan **correcciones de defectos** (`rc.2`, `rc.3`...). Las funciones nuevas esperan al cierre y salen en `1.1.0`.
+- Los defectos encontrados en el UAT se registran como *issues* con la etiqueta `uat` (número del caso, qué se hizo, qué se esperaba, qué pasó y captura).
+
 ## Limitaciones conocidas para producción
 
 Esto es un MVP pensado para correr en un solo proceso. Antes de desplegar en otro entorno hay que resolver:

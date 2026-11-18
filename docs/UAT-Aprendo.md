@@ -1,6 +1,6 @@
 # Casos de prueba UAT: Aprendo (EstudioAI)
 
-Versión bajo prueba: MVP completo del PRD (HU-01 a HU-11) más las definiciones de producto de la ronda 1 de UAT (ver `docs/DEFINICIONES-PRODUCTO.md`).
+Versión bajo prueba: **v1.0.0-rc.1** (etiqueta de Git y Release en GitHub). Incluye las 11 historias del PRD (HU-01 a HU-11) y las definiciones de producto de la ronda 1 de UAT (ver `docs/DEFINICIONES-PRODUCTO.md`). Historial: `CHANGELOG.md`.
 Fuente de requisitos: `docs/PRD-Aprendo.md` y `.kiro/specs/*/requirements.md`.
 
 ## 1. Alcance de esta ronda
@@ -260,6 +260,8 @@ Precondición para los casos de nivel inicial: un alumno con curso "1° básico"
 - Ningún defecto de severidad Crítica o Alta abierto.
 - Los casos de prioridad **M** rechazados tienen un plan acordado.
 - UAT-050 a UAT-052, UAT-071, UAT-101 a UAT-105 ejecutados con una llave real de IA.
+- Durante el UAT solo se corrigen defectos. Cada corrección se publica como una versión nueva (1.0.0-rc.2, c.3...) y se vuelven a ejecutar los casos afectados. Las funciones nuevas esperan a que el UAT cierre.
+- Al aprobarse, la última candidata se publica como 1.0.0 sin cambios de código.
 
 ## 7. Aprobación
 
