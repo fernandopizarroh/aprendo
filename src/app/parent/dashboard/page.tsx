@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { api } from "@/lib/client/api";
 import { ProgressBar } from "@/components/student/ProgressBar";
+import { ExtraChallengeButton } from "@/components/ExtraChallengeButton";
 
 type StatusLabel = "En Repaso" | "En Diagnóstico" | "En Desafío" | "Completado";
 
@@ -21,6 +22,10 @@ interface Progress {
   lastActivity: string | null;
   activities: { ok: number; help: number; error: number };
   helped: { question: string; at: string }[];
+  challengePasses: number;
+  extraPending: boolean;
+  extraExhausted: boolean;
+  canGrantExtra: boolean;
 }
 interface RouteRow {
   id: string;
@@ -50,7 +55,7 @@ const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" }) : "Sin actividad";
 const pct = (n: number | null) => (n === null ? "—" : `${n}%`);
 
-function RouteCard({ r }: { r: RouteRow }) {
+function RouteCard({ r, studentName, onChanged }: { r: RouteRow; studentName: string; onChanged: () => void }) {
   const p = r.progress;
   return (
     <article className="card stack-sm subject-card" style={{ "--accent": r.subject.colorTag } as CSSProperties}>
@@ -74,7 +79,9 @@ function RouteCard({ r }: { r: RouteRow }) {
       {p && (
         <>
           <ProgressBar value={p.progressPercent} label={`Avance de ${r.title}`} />
-          {p.ready && <p className="alert alert-success small" style={{ margin: 0 }}>🏆 Aprobó el Desafío: listo para su prueba.</p>}
+          {p.ready && <p className="alert alert-success small" style={{ margin: 0 }}>🏆 Aprobó el Desafío{p.challengePasses > 1 ? ` (${p.challengePasses} veces)` : ""}: listo para su prueba.</p>}
+          {p.extraPending && <p className="alert alert-info small" style={{ margin: 0 }}>🔓 Desafío adicional habilitado: el alumno puede rendirlo.</p>}
+          {p.extraExhausted && <p className="alert alert-warning small" style={{ margin: 0 }}>Usó los intentos del Desafío adicional. Su aprobación anterior sigue vigente.</p>}
           {p.needsRepeat && (
             <p className="alert alert-warning small" style={{ margin: 0 }}>
               🔁 No alcanzó el {r.challengeThreshold}% en sus 2 intentos del Desafío. Debe repasar y aprobar un Diagnóstico para abrir uno nuevo.
@@ -84,13 +91,14 @@ function RouteCard({ r }: { r: RouteRow }) {
             <div><dt>Intentos de Diagnóstico</dt><dd>{p.diagnosticAttempts}</dd></div>
             <div><dt>Mejor Diagnóstico</dt><dd>{pct(p.bestDiagnostic)}</dd></div>
             <div><dt>Desafío (último · mejor)</dt><dd>{p.challengeAttempts === 0 ? "Sin rendir" : `${pct(p.challengeScore)} · ${pct(p.bestChallenge)}`}</dd></div>
-            {!p.ready && <div><dt>Intentos de Desafío disponibles</dt><dd>{p.challengeAttemptsLeft} de 2</dd></div>}
+            {(!p.ready || p.extraPending) && <div><dt>Intentos de Desafío disponibles</dt><dd>{p.challengeAttemptsLeft} de 2</dd></div>}
             {p.round > 1 && <div><dt>Veces que repasó de nuevo</dt><dd>{p.round - 1}</dd></div>}
             {p.activities.ok + p.activities.help + p.activities.error > 0 && (
               <div><dt>Actividades de cuaderno</dt><dd>✔ {p.activities.ok} · <span className="help-text">🤝 {p.activities.help}</span> · ✖ {p.activities.error}</dd></div>
             )}
             <div><dt>Última actividad</dt><dd>{fmtDate(p.lastActivity)}</dd></div>
           </dl>
+          {p.canGrantExtra && <ExtraChallengeButton routeId={r.id} studentName={studentName} onDone={onChanged} />}
           {p.helped.length > 0 && (
             <div className="alert alert-warning small stack-sm" style={{ margin: 0 }}>
               <strong>🤝 Resolvió con ayuda: conviene reforzar</strong>
@@ -112,9 +120,15 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<StudentRow[] | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    api<{ students: StudentRow[] }>("/api/dashboard").then((r) => (r.ok ? setStudents(r.data.students) : setError(r.data.error ?? "No se pudo cargar el panel")));
+  const load = useCallback(async () => {
+    const r = await api<{ students: StudentRow[] }>("/api/dashboard");
+    if (r.ok) setStudents(r.data.students);
+    else setError(r.data.error ?? "No se pudo cargar el panel");
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (error) return <p role="alert" className="alert alert-error">{error}</p>;
   if (!students) return <p className="muted">Cargando…</p>;
@@ -146,7 +160,7 @@ export default function DashboardPage() {
                   <a className="btn btn-secondary btn-block" href="/parent/subjects">Crear una ruta</a>
                 </div>
               ) : (
-                s.routes.map((r) => <RouteCard key={r.id} r={r} />)
+                s.routes.map((r) => <RouteCard key={r.id} r={r} studentName={s.displayName} onChanged={load} />)
               )}
             </section>
           );

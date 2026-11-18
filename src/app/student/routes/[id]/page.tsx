@@ -15,7 +15,7 @@ interface Hub {
   progressPercent: number;
   review: { viewed: number; total: number; completed: boolean };
   diagnostic: { questions: number; attempts: number; best: number | null; bestThisRound: number | null; passed: boolean };
-  challenge: { questions: number; attempts: number; best: number | null; last: number | null; done: boolean; attemptsLeft: number; maxAttempts: number; lockMessage: string | null };
+  challenge: { questions: number; attempts: number; best: number | null; last: number | null; done: boolean; passedEver: boolean; extra: boolean; extraExhausted: boolean; attemptsLeft: number; maxAttempts: number; lockMessage: string | null };
 }
 
 export default function RouteHubPage({ params }: { params: { id: string } }) {
@@ -79,17 +79,20 @@ export default function RouteHubPage({ params }: { params: { id: string } }) {
           )}
         </section>
 
-        <section className="card stage-card" data-locked={!has("challenge") && !c.done}>
+        <section className="card stage-card" data-locked={!has("challenge") && !c.passedEver}>
           <h2 className="stage-head">
-            {c.done ? "🏆" : has("challenge") ? "🏁" : "🔒"} 3. Desafío {c.done && <span className="badge badge-ready">✔ Aprobado</span>}
+            {c.done || (c.passedEver && !has("challenge")) ? "🏆" : has("challenge") ? "🏁" : "🔒"} 3. Desafío {c.passedEver && <span className="badge badge-ready">✔ Aprobado{c.done ? "" : " antes"}</span>}
           </h2>
           <p className="muted" style={{ margin: 0 }}>
             {c.questions} preguntas como en la prueba real: sin pistas ni ayuda. Verás tu resultado al entregar. Tienes {c.maxAttempts} intentos para aprobar con {hub.challengeThreshold}%.
           </p>
           {c.done ? (
-            <p className="small" style={{ margin: 0 }}>¡Aprobado con {c.best}%! Estás listo para tu prueba.</p>
+            <p className="small" style={{ margin: 0 }}>¡Aprobado con {c.best}%! Estás listo para tu prueba. Si quieres rendir otro Desafío, pídele a tu apoderado que lo habilite.</p>
+          ) : c.extraExhausted ? (
+            <p className="small" style={{ margin: 0 }}>Ya usaste los intentos del Desafío adicional. ¡Tu aprobación anterior sigue vigente! Si quieres otro, pídele a tu apoderado que lo habilite.</p>
           ) : has("challenge") ? (
             <>
+              {c.extra && <p className="alert alert-info small" style={{ margin: 0 }}>🔓 Tu apoderado habilitó otro Desafío. Si no lo apruebas, tu aprobación anterior sigue vigente.</p>}
               <p className="small" style={{ margin: 0 }}>
                 {c.attempts === 0 ? "Aún no lo has rendido." : `Último: ${c.last}% · Mejor: ${c.best}%`} · Intentos disponibles: {c.attemptsLeft} de {c.maxAttempts}
               </p>

@@ -24,7 +24,7 @@ export interface QuizResult {
   threshold: number;
   passed: boolean;
   challengeUnlocked: boolean;
-  outcome?: { passed: boolean; roundReset: boolean; attemptsLeft: number; threshold: number };
+  outcome?: { passed: boolean; extra?: boolean; roundReset: boolean; attemptsLeft: number; threshold: number };
   breakdown: BreakdownItem[];
 }
 
@@ -62,6 +62,12 @@ function headline(r: QuizResult): { emoji: string; title: string; text: string }
       : { emoji: "💪", title: "¡Vas muy bien!", text: `Necesitas ${r.threshold}% para abrir el Desafío. Lee las explicaciones e inténtalo de nuevo: cada intento te acerca.` };
   }
   const o = r.outcome;
+  if (r.passed && o?.extra) return { emoji: "🏆", title: "¡Aprobaste otro Desafío!", text: "Sigues dominando el tema. ¡Felicitaciones!" };
+  if (!r.passed && o?.extra) {
+    return o.attemptsLeft > 0
+      ? { emoji: "👏", title: "¡Buen intento!", text: `Necesitas ${r.threshold}% para aprobar. Te queda ${o.attemptsLeft} intento y tu aprobación anterior sigue vigente.` }
+      : { emoji: "💪", title: "Este Desafío adicional no salió", text: `No llegaste al ${r.threshold}%, pero tu aprobación anterior sigue vigente. Si quieres otro intento, pídele a tu apoderado que habilite otro Desafío.` };
+  }
   if (r.passed) return { emoji: "🏆", title: "¡Aprobaste el Desafío!", text: "Estás muy bien preparado para tu prueba. ¡Felicitaciones!" };
   if (o?.roundReset) {
     return { emoji: "🌱", title: "Vamos a practicar un poco más", text: `No llegaste al ${r.threshold}% en tus 2 intentos. Para abrir un Desafío nuevo, repasa otra vez y aprueba un Diagnóstico. ¡Tú puedes!` };

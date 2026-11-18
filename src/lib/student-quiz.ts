@@ -101,7 +101,10 @@ export async function startQuiz(routeId: string, studentId: string, stage: QuizS
   const { summary, route, versions } = loaded;
 
   if (stage === "challenge" && summary.challengeDone) {
-    return err(403, "¡Ya aprobaste el Desafío! No necesitas rendirlo otra vez.", { code: "done" });
+    return err(403, "¡Ya aprobaste el Desafío! Si quieres rendir otro, pídele a tu apoderado que lo habilite.", { code: "done" });
+  }
+  if (stage === "challenge" && summary.extraExhausted) {
+    return err(403, "Ya usaste los intentos del Desafío adicional. ¡Tu aprobación anterior sigue vigente! Si quieres otro, pídele a tu apoderado que lo habilite.", { code: "extra_used" });
   }
   if (!summary.unlocked.includes(stage)) {
     return err(403, lockMessage(stage, summary, thresholdsOf(route)), { code: "locked" });
@@ -165,7 +168,7 @@ export async function startQuiz(routeId: string, studentId: string, stage: QuizS
  * Tras un intento sin aprobar se deja listo el banco para el siguiente (la IA tarda ~45 s). Solo se genera si hace falta:
  * si el alumno aprueba, no se gasta una llamada de más.
  */
-async function prepareNextAttempt(routeId: string, studentId: string, stage: QuizStage): Promise<void> {
+export async function prepareNextAttempt(routeId: string, studentId: string, stage: QuizStage): Promise<void> {
   const loaded = await loadStudentRoute(routeId, studentId);
   if (!loaded) return;
   const used = usedIndexes(loaded.route.attempts.filter((a) => a.stage === stage), loaded.versions[stage]);
@@ -339,6 +342,7 @@ export async function submitChallenge(attemptId: string, studentId: string, answ
   const roundReset = Boolean(after && after.summary.round > before.round);
   const outcome = {
     passed,
+    extra: before.extraPending, // Desafío adicional habilitado por el apoderado: fallarlo no reinicia nada
     roundReset,
     attemptsLeft: passed || roundReset ? 0 : after?.summary.challengeAttemptsLeft ?? 0,
     threshold: loaded.route.configChallengeThreshold,
@@ -347,7 +351,8 @@ export async function submitChallenge(attemptId: string, studentId: string, answ
     where: { id: attemptId },
     data: { answersDetailJson: { ...done.detail, outcome } as Prisma.InputJsonValue },
   });
-  if (!passed) {
+  // Se prepara el siguiente solo si el alumno aún puede usarlo (en un adicional agotado, lo habilita el apoderado después).
+  if (!passed && (roundReset || (after?.summary.challengeAttemptsLeft ?? 0) > 0)) {
     void prepareNextAttempt(attempt.routeId, studentId, "challenge");
     if (roundReset) void prepareNextAttempt(attempt.routeId, studentId, "diagnostic"); // deberá volver a practicar
   }

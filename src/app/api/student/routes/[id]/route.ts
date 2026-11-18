@@ -40,9 +40,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       best: summary.bestChallenge,
       last: summary.lastChallenge,
       done: summary.challengeDone,
+      passedEver: summary.passedEver,
+      passes: summary.challengePasses,
+      extra: summary.extraPending, // el apoderado habilitó otro Desafío
+      extraExhausted: summary.extraExhausted,
       attemptsLeft: summary.challengeAttemptsLeft,
       maxAttempts: 2,
-      lockMessage: summary.unlocked.includes("challenge") || summary.challengeDone ? null : lockMessage("challenge", summary, thresholdsOf(route)),
+      lockMessage: summary.unlocked.includes("challenge") || summary.challengeDone || summary.extraExhausted ? null : lockMessage("challenge", summary, thresholdsOf(route)),
     },
   });
 }

@@ -43,7 +43,7 @@ export async function GET() {
         colorTag: s.colorTag,
         routes: s.routes.map((r) => {
           const sum = summarizeAttempts(r.attempts, { unlock: r.configUnlockThreshold, challenge: r.configChallengeThreshold });
-          return { id: r.id, title: r.title, progressPercent: sum.progressPercent, unlocked: sum.unlocked, bestDiagnostic: sum.bestDiagnostic, challengeDone: sum.challengeDone, needsRepeat: sum.needsRepeat };
+          return { id: r.id, title: r.title, progressPercent: sum.progressPercent, unlocked: sum.unlocked, bestDiagnostic: sum.bestDiagnostic, challengeDone: sum.passedEver, extraPending: sum.extraPending, needsRepeat: sum.needsRepeat };
         }),
       })),
   });

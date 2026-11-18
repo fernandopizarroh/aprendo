@@ -26,7 +26,7 @@ interface Start {
 interface Info {
   threshold: number;
   challengeThreshold: number;
-  challenge: { done: boolean; attemptsLeft: number; maxAttempts: number; lockMessage: string | null };
+  challenge: { done: boolean; extra: boolean; extraExhausted: boolean; attemptsLeft: number; maxAttempts: number; lockMessage: string | null };
 }
 
 export default function ChallengePage({ params }: { params: { id: string } }) {
@@ -114,7 +114,7 @@ export default function ChallengePage({ params }: { params: { id: string } }) {
 
   if (phase === "intro" || !data) {
     const c = info?.challenge;
-    const blocked = Boolean(c?.lockMessage) || Boolean(c?.done);
+    const blocked = Boolean(c?.lockMessage) || Boolean(c?.done) || Boolean(c?.extraExhausted);
     return (
       <>
         <p className="small muted" style={{ margin: 0 }}>🏁 Desafío</p>
@@ -125,10 +125,16 @@ export default function ChallengePage({ params }: { params: { id: string } }) {
             <li>No hay pistas ni ayuda.</li>
             <li>No sabrás si acertaste hasta que entregues la prueba.</li>
             <li>Puedes volver a cualquier pregunta antes de entregar.</li>
-            {info && <li>Apruebas con {info.challengeThreshold}%. Tienes {c?.maxAttempts ?? 2} intentos: si no lo logras, repasarás y practicarás de nuevo para abrir un Desafío nuevo.</li>}
+            {info && (c?.extra ? (
+              <li>Apruebas con {info.challengeThreshold}%. Tienes {c?.maxAttempts ?? 2} intentos. Si no lo logras, tu aprobación anterior sigue vigente.</li>
+            ) : (
+              <li>Apruebas con {info.challengeThreshold}%. Tienes {c?.maxAttempts ?? 2} intentos: si no lo logras, repasarás y practicarás de nuevo para abrir un Desafío nuevo.</li>
+            ))}
           </ul>
         </div>
-        {c?.done && <p className="alert alert-success" style={{ marginTop: 16 }}>🏆 ¡Ya aprobaste el Desafío!</p>}
+        {c?.done && <p className="alert alert-success" style={{ marginTop: 16 }}>🏆 ¡Ya aprobaste el Desafío! Si quieres rendir otro, pídele a tu apoderado que lo habilite.</p>}
+        {c?.extraExhausted && <p className="alert alert-warning" style={{ marginTop: 16 }}>Ya usaste los intentos del Desafío adicional. ¡Tu aprobación anterior sigue vigente! Si quieres otro, pídele a tu apoderado que lo habilite.</p>}
+        {c?.extra && !blocked && <p className="alert alert-info" style={{ marginTop: 16 }}>🔓 Tu apoderado habilitó otro Desafío.</p>}
         {c?.lockMessage && <p role="alert" className="alert alert-warning" style={{ marginTop: 16 }}>🔒 {c.lockMessage}</p>}
         {error && <p role="alert" className="alert alert-warning" style={{ marginTop: 16 }}>{error}</p>}
         <div className="stack-sm" style={{ marginTop: 16 }}>

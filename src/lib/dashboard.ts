@@ -4,7 +4,7 @@ export type RouteStatusLabel = "En Repaso" | "En Diagnóstico" | "En Desafío" |
 
 /** Estado de la ruta según el avance de la ronda actual. */
 export function statusLabel(s: RouteSummary): RouteStatusLabel {
-  if (s.challengeDone) return "Completado";
+  if (s.passedEver) return "Completado"; // aprobó alguna vez; un Desafío adicional pendiente no le quita eso
   if (!s.reviewCompleted) return "En Repaso";
   if (!s.diagnosticPassed) return "En Diagnóstico";
   return "En Desafío";
@@ -76,7 +76,11 @@ export function summarizeRoute(attempts: readonly DashboardAttempt[], thresholds
     challengeAttemptsLeft: s.challengeAttemptsLeft,
     challengeScore: s.lastChallenge,
     bestChallenge: s.bestChallenge,
-    ready: s.challengeDone, // aprobó el Desafío: listo para la prueba
+    ready: s.passedEver, // aprobó el Desafío alguna vez: listo para la prueba
+    challengePasses: s.challengePasses,
+    extraPending: s.extraPending, // hay un Desafío adicional habilitado
+    extraExhausted: s.extraExhausted, // agotó los intentos del adicional (su aprobación anterior sigue vigente)
+    canGrantExtra: s.canGrantExtra, // el apoderado puede habilitar otro Desafío
     progressPercent: s.progressPercent,
     lastActivity: s.lastActivity,
     activities: activityTally(attempts.filter((a) => a.completed).map((a) => a.answersDetailJson)),

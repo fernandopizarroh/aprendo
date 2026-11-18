@@ -157,3 +157,66 @@ describe("intentos anteriores a la regla de los 2 intentos", () => {
     expect(s).toMatchObject({ round: 2, needsRepeat: true });
   });
 });
+
+describe("Desafío adicional (permiso del apoderado)", () => {
+  const base = [a("review", null, 1), a("diagnostic", 100, 2), a("challenge", 95, 3)]; // aprobó
+  const grant = (m: number) => a("challenge_grant", null, m);
+
+  it("tras aprobar, el Desafío está cerrado y el apoderado puede habilitar otro", () => {
+    const s = summarizeAttempts(base, 90);
+    expect(s).toMatchObject({ challengeDone: true, canGrantExtra: true, extraPending: false, challengeAttemptsLeft: 0, challengeLock: "done" });
+  });
+
+  it("habilitar otro lo reabre con 2 intentos, sin perder lo aprobado antes", () => {
+    const s = summarizeAttempts([...base, grant(10)], 90);
+    expect(s).toMatchObject({ challengeDone: false, extraPending: true, challengeAttemptsLeft: 2, passedEver: true, challengePasses: 1, canGrantExtra: false, challengeLock: null });
+    expect(s.unlocked).toContain("challenge");
+    expect(s.progressPercent).toBe(100); // ya completó la ruta antes
+    expect(s.needsRepeat).toBe(false);
+  });
+
+  it("aprobar el adicional cierra de nuevo y suma una aprobación", () => {
+    const s = summarizeAttempts([...base, grant(10), a("challenge", 92, 11)], 90);
+    expect(s).toMatchObject({ challengeDone: true, extraPending: false, challengePasses: 2, canGrantExtra: true, lastChallenge: 92 });
+  });
+
+  it("un fallo del adicional deja 1 intento", () => {
+    const s = summarizeAttempts([...base, grant(10), a("challenge", 50, 11)], 90);
+    expect(s).toMatchObject({ extraPending: true, challengeAttemptsLeft: 1, extraExhausted: false });
+  });
+
+  it("agotar el adicional NO reinicia la ronda ni obliga a repasar: la aprobación anterior sigue vigente", () => {
+    const s = summarizeAttempts([...base, grant(10), a("challenge", 50, 11), a("challenge", 60, 12)], 90);
+    expect(s).toMatchObject({ extraExhausted: true, extraPending: false, challengeAttemptsLeft: 0, challengeLock: "extra_used", canGrantExtra: true, round: 1, needsRepeat: false, reviewCompleted: true, passedEver: true, progressPercent: 100 });
+    expect(s.unlocked).not.toContain("challenge");
+  });
+
+  it("el apoderado puede habilitar otro después de agotar el adicional", () => {
+    const s = summarizeAttempts([...base, grant(10), a("challenge", 50, 11), a("challenge", 60, 12), grant(20)], 90);
+    expect(s).toMatchObject({ extraPending: true, extraExhausted: false, challengeAttemptsLeft: 2 });
+    expect(s.unlocked).toContain("challenge");
+  });
+
+  it("habilitar sin haber aprobado, o con uno ya habilitado, no tiene efecto", () => {
+    const sinAprobar = summarizeAttempts([a("review", null, 1), a("diagnostic", 100, 2), grant(5)], 90);
+    expect(sinAprobar).toMatchObject({ extraPending: false, challengeAttemptsLeft: 2, passedEver: false });
+    const yaHabilitado = summarizeAttempts([...base, grant(10), a("challenge", 50, 11), grant(12)], 90);
+    expect(yaHabilitado.challengeAttemptsLeft).toBe(1); // el fallo previo sigue contando
+  });
+
+  it("sin haber aprobado nunca, el Desafío normal sigue castigando con la ronda nueva", () => {
+    const s = summarizeAttempts([a("review", null, 1), a("diagnostic", 100, 2), a("challenge", 50, 3), a("challenge", 60, 4)], 90);
+    expect(s).toMatchObject({ round: 2, needsRepeat: true, extraExhausted: false });
+  });
+
+  it("el permiso del apoderado no cuenta como actividad del alumno", () => {
+    const s = summarizeAttempts([...base, grant(30)], 90);
+    expect(s.lastActivity).toEqual(at(3));
+  });
+
+  it("un Desafío antiguo sin fecha de término que ya estaba aprobado se puede reabrir", () => {
+    const old = (stage: string, score: number | null, m: number): AttemptRow => ({ stage, completed: true, scorePercentage: score, createdAt: at(m) });
+    const s = summarizeAttempts([old("review", null, 1), old("diagnostic", 100, 2), old("challenge", 95, 3), grant(9)], 90);
+    expect(s).toMatchObject({ extraPending: true, challengeAttemptsLeft: 2, passedEver: true });
+  });
+});

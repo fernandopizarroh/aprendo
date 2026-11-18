@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/session";
 import { findOwnedRoute } from "@/lib/ownership";
 import { updateRouteSettingsSchema } from "@/lib/validation";
 import { refillStatus } from "@/lib/ai/refill";
+import { loadStudentRoute } from "@/lib/student-access";
 
 const settingsOf = (r: { configUnlockThreshold: number; configChallengeThreshold: number }) => ({
   unlockThreshold: r.configUnlockThreshold,
@@ -16,9 +17,29 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const route = await findOwnedRoute(params.id, session.sub);
   if (!route) return NextResponse.json({ error: "Ruta no encontrada" }, { status: 404 });
+  // Estado del Desafío del alumno (para habilitar otro Desafío desde la pantalla de la ruta)
+  const owner = await db.learningRoute.findUnique({
+    where: { id: route.id },
+    select: { subject: { select: { studentId: true, student: { select: { displayName: true } } } } },
+  });
+  const loaded = route.status === "ready" && owner ? await loadStudentRoute(route.id, owner.subject.studentId) : null;
+  const s = loaded?.summary;
+
   return NextResponse.json({
     id: route.id,
     title: route.title,
+    challenge: s
+      ? {
+          studentName: owner!.subject.student.displayName,
+          approved: s.challengeDone,
+          passedEver: s.passedEver,
+          passes: s.challengePasses,
+          extraPending: s.extraPending,
+          extraExhausted: s.extraExhausted,
+          canGrantExtra: s.canGrantExtra,
+          attemptsLeft: s.challengeAttemptsLeft,
+        }
+      : null,
     syllabusText: route.syllabusText,
     photoPaths: route.sourceImagesUrls as string[],
     status: route.status,
