@@ -31,7 +31,7 @@ Para generar contenido hace falta una API key real de Gemini, OpenAI o Anthropic
 | `npm run db:push` | Aplica `prisma/schema.prisma` a la base local |
 | `npm run db:studio` | Explorar la base de datos |
 
-Antes de enviar cambios: `npx tsc --noEmit` y `npm test` deben pasar.
+Antes de enviar cambios: `npx tsc --noEmit` y `npm test` deben pasar. GitHub Actions (`.github/workflows/ci.yml`) corre además `npm run build` en cada pull request y en cada push a `main`.
 
 ## Cómo está organizado
 
