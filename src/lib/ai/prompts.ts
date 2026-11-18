@@ -1,4 +1,5 @@
 import { activityMax, activityTarget, askCount } from "../grade";
+import { MAX_PER_GROUP } from "../visual";
 import type { GenerateInput, Stage } from "./types";
 
 // Temperatura baja para reducir alucinaciones (PRD riesgo 3).
@@ -12,6 +13,21 @@ const ACTIVITY_SHAPE = `{ "type": "activity", "question": string, "expected": st
 const EARLY_STYLE =
   "El alumno es de nivel inicial (hasta 3° básico): usa frases cortas y palabras simples, tono cálido y cercano.";
 
+/** Dibujos: la IA entrega cantidades; el sistema los dibuja y agrega "= ❓" (nunca el resultado). */
+const DRAWING_RULES = [
+  `Dibujos: solo en preguntas con CANTIDADES (contar, sumar, restar, comparar), agrega el campo "drawing" con los grupos que se ven en el enunciado. El sistema lo dibuja con emojis.`,
+  `Forma: "drawing": { "groups": [ { "emoji": "🍎", "count": 5 }, { "emoji": "🍐", "count": 3 } ], "op": "+" | "-" | null }. Un solo emoji por grupo, máximo ${MAX_PER_GROUP} por grupo.`,
+  `Cada "count" debe ser un número escrito en el enunciado. NUNCA dibujes el resultado: el sistema agrega "= ❓". Ejemplo: "Tienes 10 galletas y comes 4, ¿cuántas quedan?" -> groups 10 🍪 y 4 🍪, op "-".`,
+  `Para contar sin números en el enunciado ("¿Cuántas estrellas hay?"), usa un solo grupo y sin op; la alternativa correcta debe ser esa cantidad.`,
+  `Si la pregunta no tiene cantidades (ubicación, palabras, formas), no agregues "drawing".`,
+].join("\n");
+
+/** Reglas de redacción para todos los niveles (las que no se cumplen se descartan al validar). */
+const WRITING_RULES = [
+  "Cada pregunta dice exactamente qué se pregunta. No uses \"¿cuántos más hay?\" ni \"¿cuántos menos hay?\" sin decir respecto de qué: escribe \"¿cuántos globos no son verdes?\" o \"¿cuántas manzanas más que peras hay?\".",
+  "La respuesta correcta no puede aparecer escrita en el enunciado. Las 4 alternativas deben ser distintas entre sí.",
+].join("\n");
+
 function questionRules(i: PromptInput, count: number, withHint: boolean): string[] {
   const hint = withHint ? `, "hint": string` : "";
   if (!i.earlyGrade) {
@@ -24,10 +40,11 @@ function questionRules(i: PromptInput, count: number, withHint: boolean): string
   const max = activityMax(count);
   return [
     EARLY_STYLE,
-    `Agrega a las preguntas el campo "visual": un dibujo hecho solo con emojis que ayude a entender (por ejemplo "🍎🍎🍎 + 🍎🍎"), de máximo 12 emojis. Al menos el 40% de las preguntas debe tenerlo.`,
+    DRAWING_RULES,
     `Incluye entre ${min} y ${max} ACTIVIDADES DE CUADERNO mezcladas entre las preguntas: tareas que el alumno hace en su cuaderno (copiar, dibujar, contar, resolver, escribir) y que un adulto revisa. El resto son preguntas de alternativas.`,
-    `Forma de una pregunta de alternativas: ${CHOICE_SHAPE}, "visual": string opcional${hint} }`,
-    `Forma de una actividad de cuaderno: ${ACTIVITY_SHAPE}, "visual": string opcional${hint} } (en "expected" describe cómo se ve una respuesta correcta, para el adulto que la revisa).`,
+    `Forma de una pregunta de alternativas: ${CHOICE_SHAPE}, "drawing": opcional${hint} }`,
+    `Forma de una actividad de cuaderno: ${ACTIVITY_SHAPE}, "drawing": opcional${hint} }.`,
+    `En "expected" escribe para el adulto que revisa cómo reconocer una respuesta correcta. Si el alumno elige libremente qué dibujar o dónde ubicarlo, describe criterios (por ejemplo "la frase debe coincidir con la posición que dibujó"), no una única respuesta.`,
   ];
 }
 
@@ -63,6 +80,7 @@ export function buildSystemPrompt(i: PromptInput): string {
     "Usa el TEMARIO DEL PROFESOR como ancla principal para interpretar letra manuscrita ilegible en las fotos.",
     "Basa el contenido en el temario y en los apuntes; no inventes materia que no aparezca en ellos.",
     "Cada pregunta de alternativas tiene 4 alternativas, un índice correcto (0 a 3) y una explicación. Distribuye la alternativa correcta de forma variada.",
+    ...(i.stage === "review" ? [] : [WRITING_RULES]),
     "En matemáticas y ciencias, resuelve el ejercicio paso a paso internamente antes de fijar la alternativa correcta.",
     ...stageInstructions(i),
     "No incluyas texto fuera del JSON ni bloques de código.",

@@ -52,6 +52,13 @@ El apoderado puede habilitar otro Desafío cuando el alumno ya lo aprobó (o ago
 - **Aviso al apoderado:** al crear o cambiar el curso de un alumno aparece un aviso (toast) que dice qué nivel entendió el sistema y pide revisar que el curso esté bien. Lo mismo se recuerda al crear una ruta. Si el curso no se reconoce, se advierte cómo escribirlo ("2° básico", "1° medio").
 - El apoderado puede cambiar el curso de un alumno. Las rutas ya generadas no cambian: hay que regenerarlas para aplicar el nuevo nivel.
 
+## 4b. Calidad de las preguntas generadas
+
+- **Dibujos:** la IA no dibuja. Entrega las cantidades del enunciado ("drawing") y el sistema arma el dibujo, que siempre termina en "= ❓" cuando hay operación. Solo se dibujan preguntas con cantidades (contar, sumar, restar, comparar); ya no hay cuota mínima de dibujos.
+- **Revisión automática:** se quita el dibujo si sus cantidades no están en el enunciado o si la operación no da la respuesta correcta. Se descarta la pregunta si es de contar y la respuesta no coincide con lo dibujado, si es ambigua ("¿cuántos más hay?" sin decir respecto de qué), si tiene alternativas repetidas o si la respuesta aparece escrita en el enunciado. Las descartadas se reemplazan solas.
+- **Bancos anteriores:** se aplican las mismas reglas al mostrarlos. Las preguntas defectuosas no se sortean en intentos nuevos.
+- **Actividades abiertas:** la respuesta esperada describe criterios para el adulto, no una única respuesta.
+
 ## 5. Dashboard del apoderado (HU-11)
 Por cada ruta: estado (En Repaso, En Diagnóstico, En Desafío, Completado), intentos de Diagnóstico, mejor puntaje de Diagnóstico, puntaje del Desafío, intentos de Desafío disponibles, fecha de última actividad, veces que repasó de nuevo y cómo validó el adulto las actividades de cuaderno.
 

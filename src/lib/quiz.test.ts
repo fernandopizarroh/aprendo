@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { buildBreakdown, buildOrder, drawIndices, gradeAnswer, gradeVerdict, shuffle, summarize, toClientQuestions, type PoolQuestion } from "./quiz";
+import { buildBreakdown, buildOrder, drawIndices, flaggedIndices, gradeAnswer, gradeVerdict, shuffle, summarize, toClientQuestions, type PoolQuestion } from "./quiz";
+
+describe("flaggedIndices (bancos antiguos con redacción defectuosa)", () => {
+  it("marca las ambiguas y las que traen la respuesta en el enunciado; no las buenas", () => {
+    const bank: PoolQuestion[] = [
+      { question: "Si hay 10 globos y 5 son verdes, ¿cuántos más hay?", options: ["5", "10", "3", "2"], correctIndex: 0, explanation: "" },
+      { question: "¿Qué palabra indica que algo está entre dos cosas?", options: ["Arriba", "Entre", "Debajo", "Adentro"], correctIndex: 1, explanation: "" },
+      { question: "Si tienes 10 galletas y comes 4, ¿cuántas te quedan?", options: ["6", "4", "10", "14"], correctIndex: 0, explanation: "" },
+    ];
+    expect(flaggedIndices(bank)).toEqual([0, 1]);
+  });
+});
 
 const choice = (i: number): PoolQuestion => ({
   question: `P${i}`,
@@ -9,7 +20,7 @@ const choice = (i: number): PoolQuestion => ({
   hint: `pista${i}`,
   visual: i % 2 ? "🍎🍎" : undefined,
 });
-const activity = (i: number): PoolQuestion => ({ type: "activity", question: `Act${i}`, expected: `esperado${i}`, explanation: `expA${i}`, hint: `pistaA${i}`, visual: "✏️" });
+const activity = (i: number): PoolQuestion => ({ type: "activity", question: `Act${i}: suma 3 y 2`, expected: `esperado${i}`, explanation: `expA${i}`, hint: `pistaA${i}`, visual: "⭐⭐⭐ + ⭐⭐" });
 
 const pool: PoolQuestion[] = [...Array.from({ length: 6 }, (_, i) => choice(i)), activity(100), activity(101)];
 
@@ -78,7 +89,7 @@ describe("toClientQuestions (no filtra respuestas)", () => {
     const qs = toClientQuestions(pool, order, false);
     const act = qs.find((q) => q.type === "activity")!;
     expect(act.options).toBeUndefined();
-    expect(act.visual).toBe("✏️");
+    expect(act.visual).toBe("⭐⭐⭐ + ⭐⭐ = ❓"); // se muestra normalizado y sin el resultado
   });
   it("las alternativas conservan su clave original", () => {
     const q = toClientQuestions(pool, order, false).find((x) => x.type === "choice")!;

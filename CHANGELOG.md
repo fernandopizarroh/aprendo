@@ -3,6 +3,10 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Las versiones siguen [SemVer](https://semver.org/lang/es/) y cada una tiene una etiqueta de Git (`vX.Y.Z`) y un Release en GitHub.
 
 ## [No publicado]
+### Corregido
+- Dibujos de nivel inicial: ya no muestran el resultado ni cantidades que contradicen el enunciado. La IA entrega cantidades y el sistema dibuja ("= ❓"). Solo se dibujan preguntas con cantidades.
+- Se descartan solas las preguntas ambiguas, con alternativas repetidas o con la respuesta escrita en el enunciado. Los bancos ya generados se corrigen al mostrarlos. Casos UAT-148 a 153.
+
 ### Agregado
 - Desafío adicional: el apoderado puede habilitar otro Desafío después de que el alumno lo aprobó (panel y detalle de la ruta). Da 2 intentos nuevos con preguntas nuevas; fallarlo no reinicia la ronda. Casos UAT-142 a 147.
 

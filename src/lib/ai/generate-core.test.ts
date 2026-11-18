@@ -76,7 +76,7 @@ describe("validateStage: tolera defectos sueltos y exige un mínimo de preguntas
 describe("validateStage: nivel inicial (dibujos y actividades de cuaderno)", () => {
   const early = { earlyGrade: true };
   const withVisual = (list: object[]) => list.map((x, i) => (i < 5 ? { ...x, visual: "🍎🍎" } : x));
-  it("acepta actividades en el rango y dibujos en al menos el 40%", () => {
+  it("acepta actividades en el rango (sin cuota de dibujos)", () => {
     const list = withVisual([...Array.from({ length: 8 }, () => q("p")), act(), act()]);
     expect(validateStage("diagnostic", { diagnostic: list }, counts, early)).toHaveLength(10);
   });
@@ -89,9 +89,28 @@ describe("validateStage: nivel inicial (dibujos y actividades de cuaderno)", () 
     expect((out as { type?: string }[]).filter((x) => x.type === "activity").length).toBeLessThanOrEqual(4); // máximo para 12 preguntas
     expect(out.length).toBeGreaterThanOrEqual(10);
   });
-  it("exige dibujos (visual) en al menos el 40%", () => {
+  it("no exige dibujos: se dibuja solo cuando hay cantidades", () => {
     const list = [...Array.from({ length: 8 }, () => q("p")), act({ visual: undefined }), act({ visual: undefined })];
-    expect(() => validateStage("diagnostic", { diagnostic: list }, counts, early)).toThrow(/40%/);
+    expect(validateStage("diagnostic", { diagnostic: list }, counts, early)).toHaveLength(10);
+  });
+  it("arma el dibujo desde las cantidades (con = ❓) e ignora el dibujo de texto de la IA", () => {
+    const sum = q("p", {
+      question: "Si tienes 4 coches y 2 muñecas, ¿cuántos juguetes tienes?",
+      options: ["6", "2", "4", "8"], correctIndex: 0,
+      visual: "🚗🚗🚗🚗 + 🧸🧸 = 🚗🚗🚗🚗🧸🧸",
+      drawing: { groups: [{ emoji: "🚗", count: 4 }, { emoji: "🧸", count: 2 }], op: "+" },
+    });
+    const out = validateStage("diagnostic", { diagnostic: [sum, q("p", { visual: "🍎🍎" }), ...Array.from({ length: 6 }, () => q("p")), act(), act()] }, counts, early) as { visual?: string; drawing?: unknown }[];
+    expect(out[0].visual).toBe("🚗🚗🚗🚗 + 🧸🧸 = ❓");
+    expect(out[0].drawing).toBeUndefined();
+    expect(out[1].visual).toBeUndefined(); // dibujo de texto sin "drawing": no se usa
+  });
+  it("quita el dibujo que no calza con el enunciado y descarta la pregunta de contar con respuesta errónea", () => {
+    const wrongDrawing = q("p", { question: "Si hay 8 lápices y 3 son rojos, ¿cuántos no son rojos?", options: ["5", "8", "3", "11"], correctIndex: 0, drawing: { groups: [{ emoji: "✏️", count: 9 }] } });
+    const wrongCount = q("p", { question: "¿Cuántas estrellas hay?", options: ["6", "7", "8", "9"], correctIndex: 0, drawing: { groups: [{ emoji: "⭐", count: 7 }] } });
+    const out = validateStage("diagnostic", { diagnostic: [wrongDrawing, wrongCount, ...Array.from({ length: 8 }, () => q("p")), act(), act()] }, counts, early) as { question: string; visual?: string }[];
+    expect(out[0].visual).toBeUndefined();
+    expect(out.some((x) => x.question === "¿Cuántas estrellas hay?")).toBe(false);
   });
   it("las actividades del Diagnóstico también necesitan pista", () => {
     const list = withVisual([...Array.from({ length: 8 }, () => q("p")), act({ hint: "" }), act()]);
@@ -103,6 +122,18 @@ describe("validateStage: nivel inicial (dibujos y actividades de cuaderno)", () 
   });
 });
 
+describe("validateStage: redacción", () => {
+  it("descarta preguntas ambiguas, con alternativas repetidas o con la respuesta en el enunciado, y lo informa", () => {
+    const bad = [
+      q("p", { question: "Si hay 10 globos y 5 son verdes, ¿cuántos más hay?" }),
+      q("p", { question: "¿Dónde está el gato?", options: ["Debajo", "debajo", "Arriba", "Entre"], correctIndex: 0 }),
+      q("p", { question: "¿Qué palabra indica que algo está entre dos cosas?", options: ["Arriba", "Entre", "Debajo", "Adentro"], correctIndex: 1 }),
+    ];
+    expect(() => validateStage("diagnostic", { diagnostic: [...bad, ...Array.from({ length: 9 }, () => q("p"))] }, counts))
+      .toThrow(/1 ambiguas, 1 con alternativas repetidas, 1 con la respuesta escrita en el enunciado/);
+    expect(validateStage("diagnostic", { diagnostic: [...bad, ...Array.from({ length: 10 }, () => q("p"))] }, counts)).toHaveLength(10);
+  });
+});
 describe("generateStage", () => {
   it("devuelve la etapa válida", async () => {
     expect(await generateStage(provider(async () => diag(12)), input("diagnostic"))).toHaveLength(12);
@@ -240,10 +271,14 @@ describe("prompts", () => {
     const p = buildSystemPrompt({ ...base, stage: "diagnostic" });
     expect(p).toMatch(/no incluyas actividades de cuaderno/);
     expect(p).not.toMatch(/emojis/);
+    expect(p).not.toMatch(/"drawing"/);
+    expect(p).toMatch(/respecto de qué/); // reglas de redacción para todos los niveles
   });
   it("nivel inicial: dibujos con emojis y actividades de cuaderno con su rango", () => {
     const p = buildSystemPrompt({ ...base, gradeLevel: "1° Basico", stage: "diagnostic", earlyGrade: true });
     expect(p).toMatch(/emojis/);
+    expect(p).toMatch(/"drawing"/);
+    expect(p).toMatch(/NUNCA dibujes el resultado/);
     expect(p).toMatch(/entre 2 y 4 ACTIVIDADES DE CUADERNO/);
     expect(p).toMatch(/"type": "activity"/);
     expect(p).toMatch(/hasta 3° básico/);

@@ -66,6 +66,9 @@ export async function generateStage(
 
       const screened = screenQuestions(stage, raw, { ...validateOpts, avoid: request.avoid });
       pool = [...pool, ...screened.kept];
+      if (screened.reasons.length || screened.drawingsRemoved) {
+        logAi(`${stage}: revisión de calidad -> ${[...screened.reasons, ...(screened.drawingsRemoved ? [`${screened.drawingsRemoved} dibujos quitados por no calzar con el enunciado`] : [])].join(", ")}`);
+      }
       if (pool.length >= expected) {
         try {
           return checkBatch(stage, pool, expected, validateOpts);

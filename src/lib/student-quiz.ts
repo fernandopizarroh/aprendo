@@ -7,6 +7,7 @@ import {
   buildBreakdown,
   buildOrder,
   drawIndices,
+  flaggedIndices,
   gradeAnswer,
   gradeVerdict,
   isActivity,
@@ -59,9 +60,12 @@ const orderMatchesPool = (d: AttemptDetail, pool: PoolQuestion[]) =>
     return p && (isActivity(p) ? o.opts.length === 0 : o.opts.length === p.options.length);
   });
 
-/** Preguntas del banco ya usadas en intentos de esta versión del banco. */
-function usedIndexes(attempts: { answersDetailJson: unknown }[], version: number): Set<number> {
-  const used = new Set<number>();
+/**
+ * Preguntas del banco que no se pueden sortear: las ya usadas en intentos de esta versión del banco
+ * y las de redacción defectuosa (bancos generados antes de los filtros de calidad).
+ */
+function usedIndexes(attempts: { answersDetailJson: unknown }[], version: number, pool: readonly PoolQuestion[]): Set<number> {
+  const used = new Set<number>(flaggedIndices(pool));
   for (const a of attempts) {
     const d = parseDetail(a.answersDetailJson);
     if (d && d.version === version) d.order.forEach((o) => used.add(o.q));
@@ -130,7 +134,7 @@ export async function startQuiz(routeId: string, studentId: string, stage: QuizS
   }
 
   if (!detail) {
-    const used = usedIndexes(stageAttempts, version);
+    const used = usedIndexes(stageAttempts, version, pool);
     const picked = drawIndices(pool, used, count);
     if (!picked) {
       // No quedan preguntas nuevas: se amplía el banco y el alumno espera. Las evaluaciones nunca se repiten.
@@ -171,7 +175,7 @@ export async function startQuiz(routeId: string, studentId: string, stage: QuizS
 export async function prepareNextAttempt(routeId: string, studentId: string, stage: QuizStage): Promise<void> {
   const loaded = await loadStudentRoute(routeId, studentId);
   if (!loaded) return;
-  const used = usedIndexes(loaded.route.attempts.filter((a) => a.stage === stage), loaded.versions[stage]);
+  const used = usedIndexes(loaded.route.attempts.filter((a) => a.stage === stage), loaded.versions[stage], poolOf(loaded, stage));
   if (poolOf(loaded, stage).length - used.size < configCount(loaded, stage)) requestRefill(routeId, stage);
 }
 

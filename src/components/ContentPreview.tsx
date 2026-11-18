@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { safeVisual } from "@/lib/visual";
 
 interface Question {
   type?: "choice" | "activity";
@@ -24,7 +25,7 @@ function Questions({ items, showHint }: { items: Question[]; showHint?: boolean 
       {items.map((q, i) => (
         <li key={i} className="preview-q">
           <p style={{ fontWeight: 700 }}>{q.type === "activity" && "📓 Actividad de cuaderno · "}{q.question}</p>
-          {q.visual && <p style={{ fontSize: "1.6rem", margin: "4px 0" }}>{q.visual}</p>}
+          {safeVisual(q) && <p style={{ fontSize: "1.6rem", margin: "4px 0" }}>{safeVisual(q)}</p>}
           {q.type === "activity" ? (
             <p className="option-correct small">Respuesta esperada (la ve el adulto que valida): {q.expected}</p>
           ) : (

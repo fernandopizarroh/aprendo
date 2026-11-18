@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { scorePercentage } from "./progress";
+import { safeVisual } from "./visual";
+import { textIssue } from "./ai/quality";
 
 // Lógica pura de las evaluaciones del alumno (Diagnóstico y Desafío).
 // La respuesta correcta, la respuesta esperada de una actividad y la explicación nunca salen del servidor antes de que corresponda.
@@ -74,6 +76,20 @@ export const attemptDetailSchema = z.object({
 });
 export type AttemptDetail = z.infer<typeof attemptDetailSchema>;
 
+/** Dibujo que se puede mostrar (los que no calzan con el enunciado o traen el resultado se ocultan). */
+const withVisual = (p: PoolQuestion): { visual?: string } => {
+  const v = safeVisual(p);
+  return v ? { visual: v } : {};
+};
+
+/**
+ * Preguntas del banco con redacción defectuosa (ambiguas, alternativas repetidas, respuesta en el enunciado).
+ * Bancos generados antes de los filtros de calidad: no se sortean en intentos nuevos (se tratan como ya usadas).
+ */
+export function flaggedIndices(pool: readonly PoolQuestion[]): number[] {
+  return pool.map((p, i) => (textIssue(p) ? i : -1)).filter((i) => i >= 0);
+}
+
 export function shuffle<T>(items: readonly T[], rng: Rng = Math.random): T[] {
   const a = [...items];
   for (let i = a.length - 1; i > 0; i--) {
@@ -118,7 +134,7 @@ export function toClientQuestions(pool: readonly PoolQuestion[], order: readonly
       position,
       type: isActivity(p) ? "activity" : "choice",
       question: p.question,
-      ...(p.visual?.trim() ? { visual: p.visual } : {}),
+      ...withVisual(p),
       ...(isActivity(p) ? {} : { options: o.opts.map((key) => ({ key, text: p.options[key] })) }),
     };
     return withHints && p.hint ? { ...base, hint: p.hint } : base;
@@ -159,7 +175,7 @@ export function buildBreakdown(
   return order.map((o, position) => {
     const p = pool[o.q];
     const given = answers[String(position)];
-    const visual = p.visual?.trim() ? { visual: p.visual } : {};
+    const visual = withVisual(p);
     if (isActivity(p)) {
       const verdict = given === 0 || given === 1 || given === 2 ? (given as Verdict) : null;
       return {

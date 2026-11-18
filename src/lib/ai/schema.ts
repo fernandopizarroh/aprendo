@@ -1,9 +1,13 @@
 import { z } from "zod";
 import { activityMax, activityTarget, askCount } from "../grade";
+import { answerText, checkDrawing, drawingSchema } from "../visual";
+import { TEXT_ISSUE_LABEL, textIssue, type TextIssue } from "./quality";
 import type { Stage } from "./types";
 
 // Contrato de salida estructurada de la IA (PRD 6.2), una etapa por llamada.
 const visual = z.string().trim().max(200).optional(); // dibujo hecho con emojis (nivel inicial)
+/** En preguntas, la IA entrega cantidades y el sistema arma el dibujo (ver src/lib/visual.ts). */
+const drawing = drawingSchema.nullish();
 
 export const flashcardSchema = z.object({
   front: z.string(),
@@ -26,6 +30,7 @@ export const choiceQuestionSchema = z.object({
   explanation: z.string(),
   hint: z.string().optional(), // solo Diagnóstico
   visual,
+  drawing,
 });
 
 /** Actividad para hacer en el cuaderno; la valida un adulto (correcto, con ayuda o error). */
@@ -36,6 +41,7 @@ export const activityQuestionSchema = z.object({
   explanation: z.string(),
   hint: z.string().optional(),
   visual,
+  drawing,
 });
 
 export const questionSchema = z.union([activityQuestionSchema, choiceQuestionSchema]);
@@ -73,6 +79,8 @@ export interface Screened {
   reasons: string[];
   /** Cuántas preguntas mandó la IA. */
   total: number;
+  /** Dibujos quitados porque no calzaban con el enunciado (la pregunta se conserva). */
+  drawingsRemoved: number;
 }
 
 /** Filtra las preguntas defectuosas de una respuesta de la IA. Conserva las buenas aunque haya malas. */
@@ -82,31 +90,44 @@ export function screenQuestions(stage: Exclude<Stage, "review">, raw: unknown, o
       ? z.object({ diagnostic: z.array(z.unknown()) }).parse(raw).diagnostic
       : z.object({ challenge: z.array(z.unknown()) }).parse(raw).challenge;
 
-  const dropped = { invalid: 0, noHint: 0, repeated: 0, notebook: 0 };
+  const dropped = { invalid: 0, noHint: 0, repeated: 0, notebook: 0, badDrawing: 0 };
+  const textDrops: Record<TextIssue, number> = { ambiguous: 0, duplicateOptions: 0, answerInQuestion: 0 };
+  let drawingsRemoved = 0;
   const seen = new Set((opts.avoid ?? []).map(normalizeText));
   const kept: Question[] = [];
   for (const item of items) {
     const parsed = questionSchema.safeParse(item);
     if (!parsed.success) { dropped.invalid++; continue; }
-    const q = parsed.data;
+    const { drawing: d, visual: _aiVisual, ...q } = parsed.data; // el dibujo de texto de la IA no se usa: se arma desde "drawing"
+    void _aiVisual;
+    const issue = textIssue(q);
+    if (issue) { textDrops[issue]++; continue; }
+    if (d && opts.earlyGrade) {
+      const check = checkDrawing(d, q.question, answerText(q));
+      if (check.ok) (q as Question).visual = check.visual;
+      else if (check.dropQuestion) { dropped.badDrawing++; continue; }
+      else drawingsRemoved++;
+    }
     if (q.type === "activity" && !opts.earlyGrade) { dropped.notebook++; continue; }
     if (stage === "diagnostic" && !q.hint?.trim()) { dropped.noHint++; continue; }
     const key = normalizeText(q.question);
     if (seen.has(key)) { dropped.repeated++; continue; }
     seen.add(key);
-    kept.push(q);
+    kept.push(q as Question);
   }
   const reasons = [
     dropped.invalid && `${dropped.invalid} mal formadas`,
     dropped.noHint && `${dropped.noHint} sin pista`,
     dropped.repeated && `${dropped.repeated} repetidas o ya usadas`,
     dropped.notebook && `${dropped.notebook} actividades de cuaderno (este nivel no las usa)`,
+    dropped.badDrawing && `${dropped.badDrawing} cuya respuesta no coincide con el dibujo`,
+    ...(Object.keys(textDrops) as TextIssue[]).map((k) => textDrops[k] && `${textDrops[k]} ${TEXT_ISSUE_LABEL[k]}`),
   ].filter((r): r is string => Boolean(r));
-  return { kept, reasons, total: items.length };
+  return { kept, reasons, total: items.length, drawingsRemoved };
 }
 
 /**
- * Revisa un lote de preguntas buenas: cantidad mínima y, en nivel inicial, actividades de cuaderno y dibujos.
+ * Revisa un lote de preguntas buenas: cantidad mínima y, en nivel inicial, actividades de cuaderno.
  * Si hay actividades de más, descarta las sobrantes. Lo que pase del margen pedido se corta.
  */
 export function checkBatch(
@@ -144,10 +165,6 @@ export function checkBatch(
     const min = activityTarget(expected);
     if (activities < min) {
       throw new Error(`Se esperaban entre ${min} y ${activityMax(kept.length)} actividades de cuaderno (type "activity"), llegaron ${activities}`);
-    }
-    const withVisual = kept.filter((q) => q.visual?.trim()).length;
-    if (withVisual < Math.ceil(kept.length * 0.4)) {
-      throw new Error(`Al menos el 40% de las preguntas debe incluir "visual" con un dibujo de emojis (llegaron ${withVisual} de ${kept.length})`);
     }
   }
   return kept;

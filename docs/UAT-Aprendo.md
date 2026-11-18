@@ -212,6 +212,12 @@ Precondición para los casos de nivel inicial: un alumno con curso "1° básico"
 | UAT-145 | HU-06 | M | Habilitar varias veces | 1. Tras agotar o aprobar un adicional, habilitar otro y rendirlo. | Se puede repetir sin límite. Las preguntas son distintas a las anteriores y se conserva el historial de intentos. | Pendiente | |
 | UAT-146 | HU-01 | M | Permisos del Desafío adicional | 1. Con sesión de alumno, llamar a `POST /api/routes/{id}/extra-challenge`.<br>2. Con otro apoderado, llamarlo sobre una ruta ajena. | Responde 401 y 404 respectivamente. | Pendiente | |
 | UAT-147 | HU-06 | B | "Solo Desafío" no reabre el Desafío | 1. En una ruta aprobada, regenerar solo el Desafío. | Cambian las preguntas pero no se habilita un Desafío nuevo; la pantalla lo advierte y sugiere usar "Habilitar otro Desafío". | Pendiente | |
+| UAT-148 | HU-07 | A | El dibujo nunca muestra el resultado | 1. Crear o regenerar una ruta de 1° básico con sumas y restas.<br>2. Revisar el Diagnóstico y el Desafío como alumno. | Los dibujos muestran solo las cantidades del enunciado y terminan en "= ❓". Ninguno trae el resultado. | Pendiente | |
+| UAT-149 | HU-07 | A | El dibujo calza con el enunciado | 1. En la misma ruta, contar los emojis de cada dibujo. | Cada grupo tiene exactamente la cantidad que dice el enunciado. Los grupos de más de 5 se ven en filas de 5. | Pendiente | |
+| UAT-150 | HU-07 | M | Sin dibujos en preguntas sin cantidades | 1. Revisar preguntas de ubicación o de palabras (arriba, entre, izquierda). | No llevan dibujo. | Pendiente | |
+| UAT-151 | HU-07 | M | Redacción clara | 1. Revisar las preguntas generadas. | No aparecen preguntas como "¿cuántos más hay?" sin decir respecto de qué, ni preguntas con la respuesta escrita en el enunciado, ni alternativas repetidas. | Pendiente | |
+| UAT-152 | HU-09 | A | Bancos antiguos se corrigen solos | 1. En una ruta generada antes de este cambio (por ejemplo "PRUEBA 3"), iniciar un intento nuevo como alumno. | Los dibujos con resultado o que no calzan no se muestran. Las preguntas ambiguas no salen en intentos nuevos; si faltan preguntas, el sistema prepara nuevas. | Pendiente | |
+| UAT-153 | HU-07 | M | Actividades abiertas con criterios | 1. Revisar la respuesta esperada de actividades como "Dibuja un gato y escribe dónde está". | La respuesta esperada describe cómo reconocer una respuesta correcta, sin fijar una única posición. | Pendiente | |
 
 ### Módulo 5. Dashboard del apoderado (HU-11)
 
@@ -249,10 +255,10 @@ Precondición para los casos de nivel inicial: un alumno con curso "1° básico"
 | Módulo 2 (UAT-021 a 033) | 13 | | | |
 | Módulo 3 (UAT-034 a 061, 071 y 096) | 30 | | | |
 | Módulo 4 (UAT-072 a 095) | 24 | | | |
-| Reglas de evaluación, nivel inicial, configuración y edición de contexto (UAT-097 a 111 y 121 a 147) | 42 | | | |
+| Reglas de evaluación, nivel inicial, configuración y edición de contexto (UAT-097 a 111 y 121 a 153) | 48 | | | |
 | Módulo 5 (UAT-112 a 120) | 9 | | | |
 | Transversales (UAT-062 a 070) | 9 | | | |
-| **Total** | **147** | | | |
+| **Total** | **153** | | | |
 
 ## 5. Registro de defectos
 
