@@ -1,0 +1,47 @@
+name: CI
+
+# Revisa tipos, tests y compilación en cada propuesta de cambio y en cada push a main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Tipos, tests y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Valores de relleno: la CI no usa la base de datos ni llama a ninguna IA.
+      DATABASE_URL: "file:./ci.db"
+      APP_ENCRYPTION_KEY: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+      SESSION_SECRET: "valor-de-relleno-solo-para-ci-0123456789"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar el cliente de Prisma
+        run: npx prisma generate
+
+      - name: Revisar tipos
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test
+
+      - name: Compilar
+        run: npm run build
