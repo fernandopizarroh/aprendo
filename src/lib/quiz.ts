@@ -128,16 +128,16 @@ export function buildOrder(pool: readonly PoolQuestion[], indices?: readonly num
 
 /**
  * Preguntas para el cliente: sin respuesta correcta, sin respuesta esperada y sin explicación.
- * Pistas y dibujos solo si se piden (Diagnóstico). El Desafío simula la prueba formal: sin pistas ni dibujos.
+ * Pistas solo si se piden (Diagnóstico). Los dibujos van en ambas etapas: muestran solo los datos, nunca la operación ni el resultado.
  */
-export function toClientQuestions(pool: readonly PoolQuestion[], order: readonly OrderItem[], withHints: boolean, withVisuals = withHints): ClientQuestion[] {
+export function toClientQuestions(pool: readonly PoolQuestion[], order: readonly OrderItem[], withHints: boolean): ClientQuestion[] {
   return order.map((o, position) => {
     const p = pool[o.q];
     const base: ClientQuestion = {
       position,
       type: isActivity(p) ? "activity" : "choice",
       question: p.question,
-      ...(withVisuals ? withVisual(p) : {}),
+      ...withVisual(p),
       ...(isActivity(p) ? {} : { options: o.opts.map((key) => ({ key, text: p.options[key] })) }),
     };
     return withHints && p.hint ? { ...base, hint: p.hint } : base;

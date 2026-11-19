@@ -218,7 +218,7 @@ Precondición para los casos de nivel inicial: un alumno con curso "1° básico"
 | UAT-151 | HU-07 | M | Redacción clara | 1. Revisar las preguntas generadas. | No aparecen preguntas como "¿cuántos más hay?" sin decir respecto de qué, comparaciones que contradicen los datos ("¿cuántos gatos menos que perros?" con más gatos), preguntas que repiten lo que dice el enunciado ("El gato está debajo de la silla. ¿Dónde está el gato?"), ni alternativas repetidas. | Pendiente | |
 | UAT-152 | HU-09 | A | Bancos antiguos se corrigen solos | 1. En una ruta generada antes de este cambio (por ejemplo "PRUEBA 3"), iniciar un intento nuevo como alumno. | Los dibujos con resultado o que no calzan no se muestran. Las preguntas ambiguas no salen en intentos nuevos; si faltan preguntas, el sistema prepara nuevas. | Pendiente | |
 | UAT-153 | HU-07 | M | Actividades abiertas con criterios | 1. Revisar la respuesta esperada de actividades como "Dibuja un gato y escribe dónde está". | La respuesta esperada describe cómo reconocer una respuesta correcta, sin fijar una única posición. | Pendiente | |
-| UAT-154 | HU-10 | A | El Desafío no lleva dibujos | 1. Como alumno de 1° básico, rendir un Desafío (también un Desafío adicional). | Ninguna pregunta muestra dibujo: el alumno decide qué operación usar. El Diagnóstico sí puede tener dibujos de datos. | Pendiente | |
+| UAT-154 | HU-10 | A | Dibujos del Desafío sin la solución | 1. Como alumno de 1° básico, rendir un Desafío (también un Desafío adicional). | Las preguntas con cantidades pueden tener dibujo, pero solo con los datos del enunciado: sin signo de operación, sin "=" y sin resultado. El alumno decide qué operación usar. | Pendiente | |
 
 ### Módulo 5. Dashboard del apoderado (HU-11)
 

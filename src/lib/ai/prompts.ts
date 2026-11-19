@@ -13,7 +13,7 @@ const ACTIVITY_SHAPE = `{ "type": "activity", "question": string, "expected": st
 const EARLY_STYLE =
   "El alumno es de nivel inicial (hasta 3° básico): usa frases cortas y palabras simples, tono cálido y cercano.";
 
-/** Dibujos (solo Diagnóstico): la IA entrega cantidades; el sistema dibuja solo los datos, sin operación ni resultado. */
+/** Dibujos: la IA entrega cantidades; el sistema dibuja solo los datos, sin operación ni resultado. */
 const DRAWING_RULES = [
   `Dibujos: solo en preguntas con CANTIDADES (contar, sumar, restar, comparar), agrega el campo "drawing" con los grupos que se ven en el enunciado. El sistema lo dibuja con emojis.`,
   `Forma: "drawing": { "groups": [ { "emoji": "🍎", "count": 5 }, { "emoji": "🍐", "count": 3 } ], "op": "+" | "-" | null }. Un solo emoji por grupo, máximo ${MAX_PER_GROUP} por grupo.`,
@@ -30,7 +30,7 @@ const WRITING_RULES = [
   "La pregunta debe obligar a razonar: no la resuelvas ni des el procedimiento en el enunciado.",
 ].join("\n");
 
-function questionRules(i: PromptInput, count: number, withHint: boolean, withDrawings: boolean): string[] {
+function questionRules(i: PromptInput, count: number, withHint: boolean): string[] {
   const hint = withHint ? `, "hint": string` : "";
   if (!i.earlyGrade) {
     return [
@@ -42,10 +42,10 @@ function questionRules(i: PromptInput, count: number, withHint: boolean, withDra
   const max = activityMax(count);
   return [
     EARLY_STYLE,
-    ...(withDrawings ? [DRAWING_RULES] : ["Esta etapa simula la prueba formal: NO agregues \"drawing\" ni dibujos."]),
+    DRAWING_RULES,
     `Incluye entre ${min} y ${max} ACTIVIDADES DE CUADERNO mezcladas entre las preguntas: tareas que el alumno hace en su cuaderno (copiar, dibujar, contar, resolver, escribir) y que un adulto revisa. El resto son preguntas de alternativas.`,
-    `Forma de una pregunta de alternativas: ${CHOICE_SHAPE}${withDrawings ? ', "drawing": opcional' : ""}${hint} }`,
-    `Forma de una actividad de cuaderno: ${ACTIVITY_SHAPE}${withDrawings ? ', "drawing": opcional' : ""}${hint} }.`,
+    `Forma de una pregunta de alternativas: ${CHOICE_SHAPE}, "drawing": opcional${hint} }`,
+    `Forma de una actividad de cuaderno: ${ACTIVITY_SHAPE}, "drawing": opcional${hint} }.`,
     `En "expected" escribe para el adulto que revisa cómo reconocer una respuesta correcta. Si el alumno elige libremente qué dibujar o dónde ubicarlo, describe criterios (por ejemplo "la frase debe coincidir con la posición que dibujó"), no una única respuesta.`,
   ];
 }
@@ -64,13 +64,13 @@ function stageInstructions(i: PromptInput): string[] {
       return [
         `Genera EXACTAMENTE ${askCount(i.diagnosticCount)} preguntas de DIAGNÓSTICO, todas distintas entre sí. Cuéntalas antes de responder: el arreglo "diagnostic" debe tener ${askCount(i.diagnosticCount)} elementos.`,
         "Cada pregunta lleva una pista que oriente sin revelar la respuesta.",
-        ...questionRules(i, askCount(i.diagnosticCount), true, true),
+        ...questionRules(i, askCount(i.diagnosticCount), true),
         `Responde SOLO con JSON: { "diagnostic": [ ...preguntas ] }`,
       ];
     case "challenge":
       return [
         `Genera EXACTAMENTE ${askCount(i.challengeCount)} preguntas de DESAFÍO formal, todas distintas entre sí, sin pistas, que simulen la prueba real. Cuéntalas antes de responder: el arreglo "challenge" debe tener ${askCount(i.challengeCount)} elementos.`,
-        ...questionRules(i, askCount(i.challengeCount), false, false),
+        ...questionRules(i, askCount(i.challengeCount), false),
         `Responde SOLO con JSON: { "challenge": [ ...preguntas ] }`,
       ];
   }

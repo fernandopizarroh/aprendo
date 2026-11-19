@@ -280,8 +280,8 @@ describe("prompts", () => {
     expect(p).toMatch(/"drawing"/);
     expect(p).toMatch(/NUNCA incluyas el resultado/);
     const c = buildSystemPrompt({ ...base, gradeLevel: "1° Basico", stage: "challenge", earlyGrade: true });
-    expect(c).toMatch(/NO agregues "drawing"/); // el Desafío simula la prueba formal
-    expect(c).not.toMatch(/"drawing": opcional/);
+    expect(c).toMatch(/"drawing": opcional/); // el Desafío también lleva dibujos de datos
+    expect(c).toMatch(/NUNCA incluyas el resultado/);
     expect(p).toMatch(/entre 2 y 4 ACTIVIDADES DE CUADERNO/);
     expect(p).toMatch(/"type": "activity"/);
     expect(p).toMatch(/hasta 3° básico/);

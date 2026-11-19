@@ -91,8 +91,9 @@ describe("toClientQuestions (no filtra respuestas)", () => {
     expect(act.options).toBeUndefined();
     expect(act.visual).toBe("⭐⭐⭐ ⭐⭐"); // solo los datos: sin operación ni resultado
   });
-  it("el Desafío (sin pistas) tampoco lleva dibujos", () => {
-    expect(toClientQuestions(pool, order, false).some((q) => q.visual)).toBe(false);
+  it("el Desafío (sin pistas) también lleva dibujos de datos", () => {
+    const act = toClientQuestions(pool, order, false).find((q) => q.type === "activity")!;
+    expect(act.visual).toBe("⭐⭐⭐ ⭐⭐");
   });
   it("las alternativas conservan su clave original", () => {
     const q = toClientQuestions(pool, order, false).find((x) => x.type === "choice")!;

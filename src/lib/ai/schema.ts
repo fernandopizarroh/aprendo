@@ -102,7 +102,7 @@ export function screenQuestions(stage: Exclude<Stage, "review">, raw: unknown, o
     void _aiVisual;
     const issue = textIssue(q);
     if (issue) { textDrops[issue]++; continue; }
-    if (d && opts.earlyGrade && stage === "diagnostic") { // el Desafío no lleva dibujos
+    if (d && opts.earlyGrade) {
       const check = checkDrawing(d, q.question, answerText(q));
       if (check.ok) (q as Question).visual = check.visual;
       else if (check.dropQuestion) { dropped.badDrawing++; continue; }

@@ -55,7 +55,7 @@ El apoderado puede habilitar otro Desafío cuando el alumno ya lo aprobó (o ago
 ## 4b. Calidad de las preguntas generadas
 
 - **Dibujos:** la IA no dibuja. Entrega las cantidades del enunciado ("drawing") y el sistema dibuja **solo los datos**: un grupo debajo del otro, en filas de 5, sin signo de operación, sin "=" y sin resultado. Qué operación usar lo decide el alumno. Solo se dibujan preguntas con cantidades; no hay cuota mínima.
-- **El Desafío no lleva dibujos:** simula la prueba formal. Los dibujos de datos quedan para el Diagnóstico (práctica con pistas).
+- **Diagnóstico y Desafío** usan los mismos dibujos de datos: ayudan a entender el ejercicio sin dar la solución (confirmado por el product owner).
 - **Revisión automática:** se quita el dibujo si sus cantidades no están en el enunciado o si la operación no da la respuesta correcta. Se descarta la pregunta si es de contar y la respuesta no coincide con lo dibujado, si es ambigua ("¿cuántos más hay?" sin decir respecto de qué), si la comparación contradice los datos ("¿cuántos gatos menos que perros?" con más gatos), si tiene alternativas repetidas o si la respuesta aparece escrita en el enunciado (palabra de posición o frase copiada, aunque cambie el artículo). Las descartadas se reemplazan solas.
 - **Bancos anteriores:** se aplican las mismas reglas al mostrarlos. Las preguntas defectuosas no se sortean en intentos nuevos.
 - **Actividades abiertas:** la respuesta esperada describe criterios para el adulto, no una única respuesta.
