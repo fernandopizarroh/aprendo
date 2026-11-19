@@ -126,15 +126,18 @@ export function buildOrder(pool: readonly PoolQuestion[], indices?: readonly num
   }));
 }
 
-/** Preguntas para el cliente: sin respuesta correcta, sin respuesta esperada y sin explicación. La pista solo si se pide (Diagnóstico). */
-export function toClientQuestions(pool: readonly PoolQuestion[], order: readonly OrderItem[], withHints: boolean): ClientQuestion[] {
+/**
+ * Preguntas para el cliente: sin respuesta correcta, sin respuesta esperada y sin explicación.
+ * Pistas y dibujos solo si se piden (Diagnóstico). El Desafío simula la prueba formal: sin pistas ni dibujos.
+ */
+export function toClientQuestions(pool: readonly PoolQuestion[], order: readonly OrderItem[], withHints: boolean, withVisuals = withHints): ClientQuestion[] {
   return order.map((o, position) => {
     const p = pool[o.q];
     const base: ClientQuestion = {
       position,
       type: isActivity(p) ? "activity" : "choice",
       question: p.question,
-      ...withVisual(p),
+      ...(withVisuals ? withVisual(p) : {}),
       ...(isActivity(p) ? {} : { options: o.opts.map((key) => ({ key, text: p.options[key] })) }),
     };
     return withHints && p.hint ? { ...base, hint: p.hint } : base;

@@ -1,4 +1,4 @@
-/** Dibujo de apoyo hecho con emojis (nivel inicial). Se muestra como texto, nunca como HTML. */
+/** Dibujo de apoyo hecho con emojis (nivel inicial): un grupo de datos por fila. Se muestra como texto, nunca como HTML. */
 const segmenter = new Intl.Segmenter("es", { granularity: "grapheme" });
 
 /** Parte un grupo de emojis en bloques de 5 para que sea fácil contarlos. */
@@ -14,15 +14,13 @@ export function Visual({ text }: { text?: string }) {
   const tokens = text.trim().split(/\s+/);
   return (
     <div className="visual" role="img" aria-label="Dibujo de apoyo">
-      {tokens.map((t, i) =>
-        /^[+−\-=]$/.test(t) ? (
-          <span key={i} className="visual-op">{t}</span>
-        ) : (
+      {tokens
+        .filter((t) => !/^[+−\-=❓?]+$/.test(t)) // dibujos antiguos: sin signos ni resultado
+        .map((t, i) => (
           <span key={i} className="visual-group">
             {chunks(t).map((c, j) => <span key={j}>{c}</span>)}
           </span>
-        ),
-      )}
+        ))}
     </div>
   );
 }

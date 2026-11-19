@@ -86,10 +86,13 @@ describe("toClientQuestions (no filtra respuestas)", () => {
     expect(JSON.stringify(toClientQuestions(pool, order, false))).not.toMatch(/pista|hint/);
   });
   it("actividades sin alternativas, con dibujo", () => {
-    const qs = toClientQuestions(pool, order, false);
+    const qs = toClientQuestions(pool, order, true);
     const act = qs.find((q) => q.type === "activity")!;
     expect(act.options).toBeUndefined();
-    expect(act.visual).toBe("⭐⭐⭐ + ⭐⭐ = ❓"); // se muestra normalizado y sin el resultado
+    expect(act.visual).toBe("⭐⭐⭐ ⭐⭐"); // solo los datos: sin operación ni resultado
+  });
+  it("el Desafío (sin pistas) tampoco lleva dibujos", () => {
+    expect(toClientQuestions(pool, order, false).some((q) => q.visual)).toBe(false);
   });
   it("las alternativas conservan su clave original", () => {
     const q = toClientQuestions(pool, order, false).find((x) => x.type === "choice")!;

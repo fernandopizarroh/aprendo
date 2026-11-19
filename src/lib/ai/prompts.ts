@@ -13,11 +13,11 @@ const ACTIVITY_SHAPE = `{ "type": "activity", "question": string, "expected": st
 const EARLY_STYLE =
   "El alumno es de nivel inicial (hasta 3° básico): usa frases cortas y palabras simples, tono cálido y cercano.";
 
-/** Dibujos: la IA entrega cantidades; el sistema los dibuja y agrega "= ❓" (nunca el resultado). */
+/** Dibujos (solo Diagnóstico): la IA entrega cantidades; el sistema dibuja solo los datos, sin operación ni resultado. */
 const DRAWING_RULES = [
   `Dibujos: solo en preguntas con CANTIDADES (contar, sumar, restar, comparar), agrega el campo "drawing" con los grupos que se ven en el enunciado. El sistema lo dibuja con emojis.`,
   `Forma: "drawing": { "groups": [ { "emoji": "🍎", "count": 5 }, { "emoji": "🍐", "count": 3 } ], "op": "+" | "-" | null }. Un solo emoji por grupo, máximo ${MAX_PER_GROUP} por grupo.`,
-  `Cada "count" debe ser un número escrito en el enunciado. NUNCA dibujes el resultado: el sistema agrega "= ❓". Ejemplo: "Tienes 10 galletas y comes 4, ¿cuántas quedan?" -> groups 10 🍪 y 4 🍪, op "-".`,
+  `Cada "count" debe ser un número escrito en el enunciado. NUNCA incluyas el resultado como grupo. El alumno ve solo los grupos (sin signo): "op" es la operación que resuelve el problema y sirve para verificar tu respuesta. Ejemplo: "Tienes 10 galletas y comes 4, ¿cuántas quedan?" -> groups 10 🍪 y 4 🍪, op "-".`,
   `Para contar sin números en el enunciado ("¿Cuántas estrellas hay?"), usa un solo grupo y sin op; la alternativa correcta debe ser esa cantidad.`,
   `Si la pregunta no tiene cantidades (ubicación, palabras, formas), no agregues "drawing".`,
 ].join("\n");
@@ -25,10 +25,12 @@ const DRAWING_RULES = [
 /** Reglas de redacción para todos los niveles (las que no se cumplen se descartan al validar). */
 const WRITING_RULES = [
   "Cada pregunta dice exactamente qué se pregunta. No uses \"¿cuántos más hay?\" ni \"¿cuántos menos hay?\" sin decir respecto de qué: escribe \"¿cuántos globos no son verdes?\" o \"¿cuántas manzanas más que peras hay?\".",
-  "La respuesta correcta no puede aparecer escrita en el enunciado. Las 4 alternativas deben ser distintas entre sí.",
+  "La respuesta correcta no puede aparecer escrita en el enunciado: no preguntes lo mismo que el enunciado ya dice (\"El gato está debajo de la silla. ¿Dónde está el gato?\" no sirve). Las 4 alternativas deben ser distintas entre sí.",
+  "En comparaciones (\"¿cuántos X más que Y?\" / \"¿cuántos X menos que Y?\"), revisa que calce con los datos: \"más que\" solo si X es mayor; \"menos que\" solo si X es menor.",
+  "La pregunta debe obligar a razonar: no la resuelvas ni des el procedimiento en el enunciado.",
 ].join("\n");
 
-function questionRules(i: PromptInput, count: number, withHint: boolean): string[] {
+function questionRules(i: PromptInput, count: number, withHint: boolean, withDrawings: boolean): string[] {
   const hint = withHint ? `, "hint": string` : "";
   if (!i.earlyGrade) {
     return [
@@ -40,10 +42,10 @@ function questionRules(i: PromptInput, count: number, withHint: boolean): string
   const max = activityMax(count);
   return [
     EARLY_STYLE,
-    DRAWING_RULES,
+    ...(withDrawings ? [DRAWING_RULES] : ["Esta etapa simula la prueba formal: NO agregues \"drawing\" ni dibujos."]),
     `Incluye entre ${min} y ${max} ACTIVIDADES DE CUADERNO mezcladas entre las preguntas: tareas que el alumno hace en su cuaderno (copiar, dibujar, contar, resolver, escribir) y que un adulto revisa. El resto son preguntas de alternativas.`,
-    `Forma de una pregunta de alternativas: ${CHOICE_SHAPE}, "drawing": opcional${hint} }`,
-    `Forma de una actividad de cuaderno: ${ACTIVITY_SHAPE}, "drawing": opcional${hint} }.`,
+    `Forma de una pregunta de alternativas: ${CHOICE_SHAPE}${withDrawings ? ', "drawing": opcional' : ""}${hint} }`,
+    `Forma de una actividad de cuaderno: ${ACTIVITY_SHAPE}${withDrawings ? ', "drawing": opcional' : ""}${hint} }.`,
     `En "expected" escribe para el adulto que revisa cómo reconocer una respuesta correcta. Si el alumno elige libremente qué dibujar o dónde ubicarlo, describe criterios (por ejemplo "la frase debe coincidir con la posición que dibujó"), no una única respuesta.`,
   ];
 }
@@ -62,13 +64,13 @@ function stageInstructions(i: PromptInput): string[] {
       return [
         `Genera EXACTAMENTE ${askCount(i.diagnosticCount)} preguntas de DIAGNÓSTICO, todas distintas entre sí. Cuéntalas antes de responder: el arreglo "diagnostic" debe tener ${askCount(i.diagnosticCount)} elementos.`,
         "Cada pregunta lleva una pista que oriente sin revelar la respuesta.",
-        ...questionRules(i, askCount(i.diagnosticCount), true),
+        ...questionRules(i, askCount(i.diagnosticCount), true, true),
         `Responde SOLO con JSON: { "diagnostic": [ ...preguntas ] }`,
       ];
     case "challenge":
       return [
         `Genera EXACTAMENTE ${askCount(i.challengeCount)} preguntas de DESAFÍO formal, todas distintas entre sí, sin pistas, que simulen la prueba real. Cuéntalas antes de responder: el arreglo "challenge" debe tener ${askCount(i.challengeCount)} elementos.`,
-        ...questionRules(i, askCount(i.challengeCount), false),
+        ...questionRules(i, askCount(i.challengeCount), false, false),
         `Responde SOLO con JSON: { "challenge": [ ...preguntas ] }`,
       ];
   }

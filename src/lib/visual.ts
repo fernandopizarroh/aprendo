@@ -3,6 +3,8 @@ import { z } from "zod";
 // Dibujos de apoyo para el nivel inicial (hasta 3° básico).
 // La IA no dibuja: entrega cantidades ("drawing") y el sistema arma el dibujo. Así el dibujo nunca trae el resultado
 // y las cantidades son exactas (los modelos cuentan mal los emojis repetidos).
+// El dibujo muestra SOLO los datos del enunciado (un grupo por fila), sin signo ni "= ❓": qué operación usar lo decide el alumno.
+// "op" se usa únicamente para verificar que la respuesta correcta calce con los datos.
 // Los dibujos que no calzan con el enunciado se descartan, también en bancos generados antes de este cambio.
 
 export const MAX_PER_GROUP = 20;
@@ -47,13 +49,12 @@ export function leadingNumber(text: string): number | null {
   return w in WORDS ? WORDS[w] : null;
 }
 
+/** Grupos separados por espacio (la vista los muestra uno por fila). Nunca incluye la operación ni el resultado. */
 export function renderDrawing(d: Drawing): string {
-  const sign = d.op === "-" ? " − " : " + ";
-  const body = d.groups.map((g) => g.emoji.repeat(g.count)).join(sign);
-  return d.op ? `${body} = ${QUESTION_MARK}` : body;
+  return d.groups.map((g) => g.emoji.repeat(g.count)).join(" ");
 }
 
-/** Lee un dibujo de texto ("🍎🍎🍎 + 🍐🍐 = ❓"). null si no es un dibujo de cantidades. */
+/** Lee un dibujo de texto ("🍎🍎🍎 + 🍐🍐 = ❓" o "🍎🍎🍎 🍐🍐"). null si no es un dibujo de cantidades. */
 export function parseVisualText(text: string): { drawing: Drawing; shownResult: boolean } | null {
   const [left, ...rest] = text.split("=");
   const after = rest.join("=").trim();
@@ -62,8 +63,8 @@ export function parseVisualText(text: string): { drawing: Drawing; shownResult: 
   if (ops.length && !ops.every((o) => o === ops[0])) return null;
   const op = ops.length ? (ops[0] === "+" ? "+" : "-") : null;
   const groups: Drawing["groups"] = [];
-  for (const part of left.split(/[+\-−]/)) {
-    const gs = graphemes(part.replace(/\s+/g, ""));
+  for (const part of left.split(/[+\-−]|\s+/).filter((p) => p.trim())) {
+    const gs = graphemes(part);
     if (!gs.length || !gs.every((g) => bare(g) === bare(gs[0]) && isEmoji(g))) return null;
     groups.push({ emoji: gs[0], count: gs.length }); // se conserva el emoji tal cual (con su selector de variante)
   }
@@ -91,7 +92,6 @@ export function checkDrawing(d: Drawing, question: string, answer?: string): Dra
   }
   const total = d.groups.reduce((s, g) => s + g.count, 0);
   if (total > MAX_TOTAL) return fail("el dibujo tiene demasiados emojis");
-  if (d.groups.length > 1 && !d.op) return fail("el dibujo tiene varios grupos sin operación");
   if (d.groups.length === 1 && d.op) return fail("el dibujo tiene operación con un solo grupo");
   if (d.op === "-" && (d.groups.length !== 2 || d.groups[0].count < d.groups[1].count)) return fail("la resta del dibujo no tiene sentido");
 

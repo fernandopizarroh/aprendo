@@ -93,7 +93,7 @@ describe("validateStage: nivel inicial (dibujos y actividades de cuaderno)", () 
     const list = [...Array.from({ length: 8 }, () => q("p")), act({ visual: undefined }), act({ visual: undefined })];
     expect(validateStage("diagnostic", { diagnostic: list }, counts, early)).toHaveLength(10);
   });
-  it("arma el dibujo desde las cantidades (con = ❓) e ignora el dibujo de texto de la IA", () => {
+  it("arma el dibujo desde las cantidades (solo los datos) e ignora el dibujo de texto de la IA", () => {
     const sum = q("p", {
       question: "Si tienes 4 coches y 2 muñecas, ¿cuántos juguetes tienes?",
       options: ["6", "2", "4", "8"], correctIndex: 0,
@@ -101,7 +101,7 @@ describe("validateStage: nivel inicial (dibujos y actividades de cuaderno)", () 
       drawing: { groups: [{ emoji: "🚗", count: 4 }, { emoji: "🧸", count: 2 }], op: "+" },
     });
     const out = validateStage("diagnostic", { diagnostic: [sum, q("p", { visual: "🍎🍎" }), ...Array.from({ length: 6 }, () => q("p")), act(), act()] }, counts, early) as { visual?: string; drawing?: unknown }[];
-    expect(out[0].visual).toBe("🚗🚗🚗🚗 + 🧸🧸 = ❓");
+    expect(out[0].visual).toBe("🚗🚗🚗🚗 🧸🧸"); // solo los datos
     expect(out[0].drawing).toBeUndefined();
     expect(out[1].visual).toBeUndefined(); // dibujo de texto sin "drawing": no se usa
   });
@@ -278,7 +278,10 @@ describe("prompts", () => {
     const p = buildSystemPrompt({ ...base, gradeLevel: "1° Basico", stage: "diagnostic", earlyGrade: true });
     expect(p).toMatch(/emojis/);
     expect(p).toMatch(/"drawing"/);
-    expect(p).toMatch(/NUNCA dibujes el resultado/);
+    expect(p).toMatch(/NUNCA incluyas el resultado/);
+    const c = buildSystemPrompt({ ...base, gradeLevel: "1° Basico", stage: "challenge", earlyGrade: true });
+    expect(c).toMatch(/NO agregues "drawing"/); // el Desafío simula la prueba formal
+    expect(c).not.toMatch(/"drawing": opcional/);
     expect(p).toMatch(/entre 2 y 4 ACTIVIDADES DE CUADERNO/);
     expect(p).toMatch(/"type": "activity"/);
     expect(p).toMatch(/hasta 3° básico/);

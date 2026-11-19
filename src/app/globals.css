@@ -287,9 +287,10 @@ details > summary { cursor: pointer; min-height: 32px; }
 
 /* Dibujos de apoyo (nivel inicial) y validación del adulto */
 .visual { padding: 12px; font-size: 2rem; line-height: 1.4; text-align: center; white-space: pre-wrap; word-break: break-word; background: #fff; border: 2px dashed var(--border); border-radius: var(--radius); }
-.visual { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; }
-.visual-group { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px; }
-.visual-op { font-weight: 800; color: var(--text, inherit); }
+.visual { display: flex; flex-direction: column; align-items: stretch; gap: 10px; text-align: left; }
+/* Un grupo por bloque, en filas de 5 alineadas a la izquierda: se pueden emparejar los grupos para comparar. */
+.visual-group { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; letter-spacing: 2px; }
+.visual-group + .visual-group { border-top: 1px dashed var(--border); padding-top: 8px; }
 .adult-box { padding: 12px; background: var(--warning-soft); border: 1px solid #fcd34d; border-radius: 10px; }
 .badge-info { background: #dbeafe; color: #1e40af; }
 .badge-warn { background: #fef3c7; color: #92400e; }

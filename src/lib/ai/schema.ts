@@ -91,7 +91,7 @@ export function screenQuestions(stage: Exclude<Stage, "review">, raw: unknown, o
       : z.object({ challenge: z.array(z.unknown()) }).parse(raw).challenge;
 
   const dropped = { invalid: 0, noHint: 0, repeated: 0, notebook: 0, badDrawing: 0 };
-  const textDrops: Record<TextIssue, number> = { ambiguous: 0, duplicateOptions: 0, answerInQuestion: 0 };
+  const textDrops: Record<TextIssue, number> = { ambiguous: 0, comparison: 0, duplicateOptions: 0, answerInQuestion: 0 };
   let drawingsRemoved = 0;
   const seen = new Set((opts.avoid ?? []).map(normalizeText));
   const kept: Question[] = [];
@@ -102,7 +102,7 @@ export function screenQuestions(stage: Exclude<Stage, "review">, raw: unknown, o
     void _aiVisual;
     const issue = textIssue(q);
     if (issue) { textDrops[issue]++; continue; }
-    if (d && opts.earlyGrade) {
+    if (d && opts.earlyGrade && stage === "diagnostic") { // el Desafío no lleva dibujos
       const check = checkDrawing(d, q.question, answerText(q));
       if (check.ok) (q as Question).visual = check.visual;
       else if (check.dropQuestion) { dropped.badDrawing++; continue; }

@@ -12,15 +12,17 @@ describe("numbersIn y leadingNumber", () => {
   });
 });
 
-describe("renderDrawing: el sistema dibuja y nunca muestra el resultado", () => {
-  it("con operación termina en = ❓", () => {
-    expect(renderDrawing({ groups: [{ emoji: "🍪", count: 3 }, { emoji: "🍪", count: 2 }], op: "-" })).toBe("🍪🍪🍪 − 🍪🍪 = ❓");
+describe("renderDrawing: el sistema dibuja solo los datos", () => {
+  it("nunca muestra la operación ni el resultado (eso lo razona el alumno)", () => {
+    const out = renderDrawing({ groups: [{ emoji: "🍪", count: 3 }, { emoji: "🍪", count: 2 }], op: "-" });
+    expect(out).toBe("🍪🍪🍪 🍪🍪");
+    expect(out).not.toMatch(/[−+=❓]/);
   });
   it("sin operación es solo el grupo", () => {
     expect(renderDrawing({ groups: [{ emoji: "⭐", count: 4 }] })).toBe("⭐⭐⭐⭐");
   });
   it("lo que dibuja se puede volver a leer igual", () => {
-    const d = { groups: [{ emoji: "🍏", count: 5 }, { emoji: "🍐", count: 3 }], op: "+" as const };
+    const d = { groups: [{ emoji: "🍏", count: 5 }, { emoji: "🍐", count: 3 }], op: null };
     expect(parseVisualText(renderDrawing(d))).toEqual({ drawing: d, shownResult: false });
   });
 });
@@ -42,9 +44,9 @@ describe("checkDrawing", () => {
     expect(ok(checkDrawing({ groups: [{ emoji: "⭐", count: 7 }] }, "¿Cuántas estrellas hay?", "7"))).toBe(true);
     expect(checkDrawing({ groups: [{ emoji: "⭐", count: 7 }] }, "¿Cuántas estrellas hay?", "8")).toMatchObject({ ok: false, dropQuestion: true });
   });
-  it("rechaza restas imposibles, varios grupos sin operación y grupos con emojis mezclados", () => {
+  it("rechaza restas imposibles y grupos con emojis mezclados; acepta grupos de datos sin operación", () => {
     expect(checkDrawing({ groups: [{ emoji: "🍎", count: 2 }, { emoji: "🍎", count: 5 }], op: "-" }, "2 y 5", "3").ok).toBe(false);
-    expect(checkDrawing({ groups: [{ emoji: "🍎", count: 2 }, { emoji: "🍐", count: 5 }] }, "2 y 5").ok).toBe(false);
+    expect(checkDrawing({ groups: [{ emoji: "🍎", count: 2 }, { emoji: "🍐", count: 5 }] }, "2 manzanas y 5 peras, ¿cuál hay más?", "Peras").ok).toBe(true);
     expect(checkDrawing({ groups: [{ emoji: "🐶🪑", count: 2 }] }, "2 perros").ok).toBe(false);
   });
 });
@@ -61,10 +63,16 @@ describe("safeVisual: bancos antiguos (dibujos escritos por la IA, casos reales)
     expect(safeVisual(choice("¿Qué palabra indica que algo está a la izquierda de otra cosa?", "👦⬅️👧", "Izquierda"))).toBeUndefined();
     expect(safeVisual(choice("¿Qué palabra indica que algo está adentro?", "📦", "Adentro"))).toBeUndefined();
   });
-  it("conserva los correctos y les agrega = ❓", () => {
-    expect(safeVisual(choice("Si tienes 10 galletas y comes 4, ¿cuántas galletas te quedan?", "🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪 - 🍪🍪🍪🍪", "6"))).toBe("🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪 − 🍪🍪🍪🍪 = ❓");
+  it("conserva los correctos, pero sin la operación (solo los datos)", () => {
+    expect(safeVisual(choice("Si tienes 10 galletas y comes 4, ¿cuántas galletas te quedan?", "🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪 - 🍪🍪🍪🍪", "6"))).toBe("🍪🍪🍪🍪🍪🍪🍪🍪🍪🍪 🍪🍪🍪🍪");
     expect(safeVisual({ type: "activity", question: "Escribe cuántos juguetes tienes en total si tienes 4 coches y 2 muñecas.", visual: "🚗🚗🚗🚗 + 🧸🧸", expected: "6 juguetes en total." }))
-      .toBe("🚗🚗🚗🚗 + 🧸🧸 = ❓");
+      .toBe("🚗🚗🚗🚗 🧸🧸");
+  });
+  it("Desafío real (versión 4): los dibujos ya armados dejan de mostrar la resta", () => {
+    expect(safeVisual(choice("En una charca hay 12 ranas y 5 patos. ¿Cuántas ranas más que patos hay?", "🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸 − 🦆🦆🦆🦆🦆 = ❓", "7 ranas")))
+      .toBe("🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸🐸 🦆🦆🦆🦆🦆");
+    expect(safeVisual(choice("Un lápiz mide 7 palitos de largo y una tiza mide 5 palitos de largo. ¿Qué objeto es más largo?", "🪵🪵🪵🪵🪵🪵🪵 − 🪵🪵🪵🪵🪵 = ❓", "El lápiz")))
+      .toBe("🪵🪵🪵🪵🪵🪵🪵 🪵🪵🪵🪵🪵");
   });
   it("sin dibujo no muestra nada", () => {
     expect(safeVisual({ question: "x" })).toBeUndefined();
